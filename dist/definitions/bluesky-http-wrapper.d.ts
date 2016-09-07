@@ -164,19 +164,19 @@ declare namespace bluesky.core.models.blueskyHttpClient {
 declare namespace bluesky.core.models.blueskyHttpClient {
     enum EndpointType {
         /** Use current domain from which the app was loaded. */
-        ORIGIN,
+        ORIGIN = 0,
         /** Use CoreAPI url. By default, handles auth & userRole. */
-        CORE_API,
+        CORE_API = 1,
         /** Use MarketingAPI url. By default, ignores auth & userRole. */
-        MARKETING_API,
+        MARKETING_API = 2,
         /** Use QuoteWizard url of the current env. By default, ignores auth, session & userRole. */
-        QUOTE_WIZARD,
+        QUOTE_WIZARD = 3,
         /** Use OrderEntry url of the current env. By default, ignores auth, session & userRole. */
-        ORDER_ENTRY,
+        ORDER_ENTRY = 4,
         /** Use OrderTracking url of the current env. By default, ignores auth, session & userRole. */
-        ORDER_TRACKING,
+        ORDER_TRACKING = 5,
         /** External URL. By default, do nothing & pass it to $http service. */
-        EXTERNAL,
+        EXTERNAL = 6,
     }
 }
 

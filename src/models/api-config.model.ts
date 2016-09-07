@@ -1,4 +1,4 @@
-﻿declare namespace bluesky.core.models.blueskyHttpClient {
+﻿namespace bluesky.core.models.blueskyHttpClient {
 
     import UserSsoDto = bluesky.core.models.userManagement.UserSsoDto;
 

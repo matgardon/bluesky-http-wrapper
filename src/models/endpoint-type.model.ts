@@ -1,4 +1,4 @@
-﻿declare namespace bluesky.core.models.blueskyHttpClient {
+﻿namespace bluesky.core.models.blueskyHttpClient {
     //TODO MGA document
     export enum EndpointType {
         /** Use current domain from which the app was loaded. */
