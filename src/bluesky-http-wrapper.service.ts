@@ -9,6 +9,10 @@
 
     enum HttpMethod { GET, POST, PUT, DELETE };
 
+    //TODO MGA: make this injectable // configurable in config phase
+    const CORE_API_ENDPOINT_SUFFIX = 'api';
+    const MARKETING_API_ENDPOINT_SUFFIX = 'api';
+
     /**
      * TODO MGA comment
      */
@@ -278,7 +282,7 @@
                         return null;
                     }
 
-                    baseUrl = this.blueskyAjaxClientConfig.coreApiUrl + 'api'; //TODO MGA: hard coded api/ token, to put in config !
+                    baseUrl = this.blueskyAjaxClientConfig.coreApiUrl + CORE_API_ENDPOINT_SUFFIX;
 
                 } else if (endpointType === EndpointType.MARKETING_API) {
 
@@ -287,7 +291,7 @@
                         return null;
                     }
 
-                    baseUrl = this.blueskyAjaxClientConfig.marketingApiUrl;
+                    baseUrl = this.blueskyAjaxClientConfig.marketingApiUrl + MARKETING_API_ENDPOINT_SUFFIX;
 
                 } else if (endpointType === EndpointType.QUOTE_WIZARD) {
 
