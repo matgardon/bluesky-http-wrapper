@@ -43,6 +43,6 @@
         }
     }
 
-    angular.module('bluesky.HttpWrapper', ['toaster', 'ngAnimate', 'ngFileUpload'])
+    angular.module('bluesky.httpWrapper', ['toaster', 'ngAnimate', 'ngFileUpload'])
            .provider('blueskyHttpWrapper', BlueskyHttpWrapperProvider);
 }
