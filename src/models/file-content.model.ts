@@ -1,4 +1,4 @@
-﻿declare namespace bluesky.core.models {
+﻿declare namespace bluesky.core.models.blueskyHttpClient {
     export interface FileContent {
         name: string;
         size: number;

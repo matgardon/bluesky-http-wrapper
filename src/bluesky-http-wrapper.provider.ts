@@ -1,6 +1,5 @@
 ﻿namespace bluesky.core.services {
-
-    import UserRoleEntryDto = bluesky.core.models.UserRoleEntryDto;
+    import UserRoleEntryDto = bluesky.core.models.userManagement.UserRoleEntryDto;
 
     /**
      * Provider for the BlueskyHttpWrapper.

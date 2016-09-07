@@ -1,11 +1,11 @@
 ﻿namespace bluesky.core.services {
 
-    import BlueskyAjaxClientConfig = bluesky.core.models.BlueskyAjaxClientConfig;
-    import FileContent = bluesky.core.models.FileContent;
-    import UserSsoDto = bluesky.core.models.UserSsoDto;
-    import BlueskyHttpRequestConfig = bluesky.core.models.IBlueskyHttpRequestConfig;
-    import EndpointType = bluesky.core.models.EndpointType;
-    import UserRoleEntryDto = bluesky.core.models.UserRoleEntryDto;
+    import UserRoleEntryDto = bluesky.core.models.userManagement.UserRoleEntryDto;
+    import UserSsoDto = bluesky.core.models.userManagement.UserSsoDto;
+    import BlueskyAjaxClientConfig = bluesky.core.models.blueskyHttpClient.BlueskyAjaxClientConfig;
+    import BlueskyHttpRequestConfig = bluesky.core.models.blueskyHttpClient.IBlueskyHttpRequestConfig;
+    import FileContent = bluesky.core.models.blueskyHttpClient.FileContent;
+    import EndpointType = bluesky.core.models.blueskyHttpClient.EndpointType;
 
     enum HttpMethod { GET, POST, PUT, DELETE };
 

@@ -1,4 +1,7 @@
-﻿declare namespace bluesky.core.models {
+﻿declare namespace bluesky.core.models.blueskyHttpClient {
+
+    import UserSsoDto = bluesky.core.models.userManagement.UserSsoDto;
+
     /**
      * TODO MGA: those parameters are specific to our auth & user role workflow in BS. A technical service should not be aware of them (inversion of responsability): create 2 services, one for technical behavior and one for functional behavior ?
      */

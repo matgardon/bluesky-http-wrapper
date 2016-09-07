@@ -3,6 +3,7 @@
   "globalDependencies": {
     "angular": "registry:dt/angular#1.5.0+20160829152510",
     "angularjs-toaster": "registry:dt/angularjs-toaster#0.4.13+20160317120654",
+    "bluesky-core-models": "file:bower_components/bluesky-core-models/dist/bluesky-core-models.d.ts",
     "jquery": "registry:dt/jquery#1.10.0+20160704162008",
     "ng-file-upload": "registry:dt/ng-file-upload#0.0.0+20160317120654"
   }

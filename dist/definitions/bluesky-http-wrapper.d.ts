@@ -1,5 +1,5 @@
 declare namespace bluesky.core.services {
-    import UserRoleEntryDto = bluesky.core.models.UserRoleEntryDto;
+    import UserRoleEntryDto = bluesky.core.models.userManagement.UserRoleEntryDto;
     /**
      * Provider for the BlueskyHttpWrapper.
      * Enables per-consumer configuration of the http service to set custom configuration URL to fetch data from:
@@ -16,11 +16,11 @@ declare namespace bluesky.core.services {
 }
 
 declare namespace bluesky.core.services {
-    import BlueskyAjaxClientConfig = bluesky.core.models.BlueskyAjaxClientConfig;
-    import FileContent = bluesky.core.models.FileContent;
-    import BlueskyHttpRequestConfig = bluesky.core.models.IBlueskyHttpRequestConfig;
-    import EndpointType = bluesky.core.models.EndpointType;
-    import UserRoleEntryDto = bluesky.core.models.UserRoleEntryDto;
+    import UserRoleEntryDto = bluesky.core.models.userManagement.UserRoleEntryDto;
+    import BlueskyAjaxClientConfig = bluesky.core.models.blueskyHttpClient.BlueskyAjaxClientConfig;
+    import BlueskyHttpRequestConfig = bluesky.core.models.blueskyHttpClient.IBlueskyHttpRequestConfig;
+    import FileContent = bluesky.core.models.blueskyHttpClient.FileContent;
+    import EndpointType = bluesky.core.models.blueskyHttpClient.EndpointType;
     /**
      * TODO MGA comment
      */
@@ -128,7 +128,8 @@ declare namespace bluesky.core.services {
     }
 }
 
-declare namespace bluesky.core.models {
+declare namespace bluesky.core.models.blueskyHttpClient {
+    import UserSsoDto = bluesky.core.models.userManagement.UserSsoDto;
     /**
      * TODO MGA: those parameters are specific to our auth & user role workflow in BS. A technical service should not be aware of them (inversion of responsability): create 2 services, one for technical behavior and one for functional behavior ?
      */
@@ -144,7 +145,7 @@ declare namespace bluesky.core.models {
     }
 }
 
-declare namespace bluesky.core.models {
+declare namespace bluesky.core.models.blueskyHttpClient {
     interface IBlueskyHttpRequestConfig extends ng.IRequestShortcutConfig {
         /**
          * TODO MGA describe flags
@@ -160,7 +161,7 @@ declare namespace bluesky.core.models {
     }
 }
 
-declare namespace bluesky.core.models {
+declare namespace bluesky.core.models.blueskyHttpClient {
     enum EndpointType {
         /** Use current domain from which the app was loaded. */
         ORIGIN,
@@ -179,41 +180,11 @@ declare namespace bluesky.core.models {
     }
 }
 
-declare namespace bluesky.core.models {
+declare namespace bluesky.core.models.blueskyHttpClient {
     interface FileContent {
         name: string;
         size: number;
         type: string;
         content: ArrayBuffer;
-    }
-}
-
-declare namespace bluesky.core.models {
-    interface ResourceBase {
-        /** Links to related resources. */
-        links: any[];
-    }
-}
-
-declare namespace bluesky.core.models {
-    interface UserRoleEntryDto {
-        name: string;
-        role: string;
-        silo: string;
-    }
-}
-
-declare namespace bluesky.core.models {
-    interface UserSsoDto extends ResourceBase {
-        subsidiary: string;
-        owners: string[];
-        userRoleEntry: UserRoleEntryDto;
-        activeDirectoryGroups: UserRoleEntryDto[];
-        regions: string[];
-        userDisplayName: string;
-        /** Gets or sets the user's identifier in the active directory. */
-        userIdentifier: string;
-        countries: string[];
-        subsidiaries: string[];
     }
 }
