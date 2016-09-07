@@ -1,0 +1,50 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+#VS project files
+.vs/
+*.njsproj
+*.csproj
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+packages/
+packages.config
+web.config
+web.*.config
+*.psess
+*.vsp
+*.vspx
+*.sap
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+.ntvs_analysis.dat
+.ntvs_analysis.dat.tmp
+Properties/AssemblyInfo.cs
+
+# Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
+
+# Dependency directories
+node_modules/
+bower_components/
+
+# Optional npm cache directory
+.npm
