@@ -13,7 +13,7 @@ var gulp = require('gulp'),
 
 var tsProject = ts.createProject('tsconfig.json');
 
-var tsSrc = 'src/**/*.ts',
+var tsSrcArray = ['src/**/*.model.ts', 'src/**/*.ts'], //import models first so that they are generated before usage in concatenated file
     tsExternalDefinitions = 'typings/**/*.d.ts';
 
 gulp.task('clean', function () {
@@ -23,18 +23,18 @@ gulp.task('clean', function () {
 
 //TODO MGA: fix ts-lint task
 gulp.task('ts-lint', function () {
-    return gulp.src([tsSrc]).pipe(tslint()).pipe(tslint.report('verbose'));
+    return gulp.src(tsSrcArray).pipe(tslint()).pipe(tslint.report('verbose'));
     //return gulp.src(tsSrc).pipe(tslint({ configuration: require("./tslint.json")})).pipe(tslint.report('prose'));
 });
 
 gulp.task('compile-ts', ['clean'], function () {
-    var tsResults = gulp.src([tsSrc, tsExternalDefinitions])
+    var tsResults = gulp.src(tsSrcArray.concat(tsExternalDefinitions))
                         .pipe(sourcemaps.init())// This means sourcemaps will be generated
                         .pipe(ts(tsProject));
     return merge([
         tsResults.dts.pipe(concat('bluesky-http-wrapper.d.ts'))
                      .pipe(gulp.dest('dist/definitions')),
-                     
+
         tsResults.js.pipe(concat('bluesky-http-wrapper.js'))
                     .pipe(ngAnnotate())//TODO MGA : check if it breaks sourcemaps ?
                     //.pipe(uglify()) //Uncomment to activate minification

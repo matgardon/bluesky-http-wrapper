@@ -1,3 +1,64 @@
+declare namespace bluesky.core.models.blueskyHttpClient {
+    import UserSsoDto = bluesky.core.models.userManagement.UserSsoDto;
+    /**
+     * TODO MGA: those parameters are specific to our auth & user role workflow in BS. A technical service should not be aware of them (inversion of responsability): create 2 services, one for technical behavior and one for functional behavior ?
+     */
+    interface BlueskyAjaxClientConfig {
+        jwtAuthToken: string;
+        currentUserRole: string;
+        currentUser?: UserSsoDto;
+        coreApiUrl?: string;
+        marketingApiUrl?: string;
+        quoteWizardUrl?: string;
+        orderEntryUrl?: string;
+        orderTrackingUrl?: string;
+    }
+}
+
+declare namespace bluesky.core.models.blueskyHttpClient {
+    interface IBlueskyHttpRequestConfig extends ng.IRequestShortcutConfig {
+        /**
+         * TODO MGA describe flags
+         */
+        endpointType?: EndpointType;
+        useJwtAuthToken?: boolean;
+        useCurrentUserRole?: boolean;
+        disableXmlHttpRequestHeader?: boolean;
+        disableToasterNotifications?: boolean;
+        file?: File;
+        uploadInBase64Json?: boolean;
+        uploadProgress?: () => any;
+    }
+}
+
+declare namespace bluesky.core.models.blueskyHttpClient {
+    enum EndpointType {
+        /** Use current domain from which the app was loaded. */
+        ORIGIN = 0,
+        /** Use CoreAPI url. By default, handles auth & userRole. */
+        CORE_API = 1,
+        /** Use MarketingAPI url. By default, ignores auth & userRole. */
+        MARKETING_API = 2,
+        /** Use QuoteWizard url of the current env. By default, ignores auth, session & userRole. */
+        QUOTE_WIZARD = 3,
+        /** Use OrderEntry url of the current env. By default, ignores auth, session & userRole. */
+        ORDER_ENTRY = 4,
+        /** Use OrderTracking url of the current env. By default, ignores auth, session & userRole. */
+        ORDER_TRACKING = 5,
+        /** External URL. By default, do nothing & pass it to $http service. */
+        EXTERNAL = 6,
+    }
+}
+
+declare namespace bluesky.core.models.blueskyHttpClient {
+    interface FileContent {
+        name: string;
+        size: number;
+        type: string;
+        content: ArrayBuffer;
+    }
+}
+
 declare namespace bluesky.core.services {
     import UserRoleEntryDto = bluesky.core.models.userManagement.UserRoleEntryDto;
     /**
@@ -125,66 +186,5 @@ declare namespace bluesky.core.services {
          * @param contentDispositionHeader
          */
         private getFileNameFromHeaderContentDisposition(contentDispositionHeader);
-    }
-}
-
-declare namespace bluesky.core.models.blueskyHttpClient {
-    import UserSsoDto = bluesky.core.models.userManagement.UserSsoDto;
-    /**
-     * TODO MGA: those parameters are specific to our auth & user role workflow in BS. A technical service should not be aware of them (inversion of responsability): create 2 services, one for technical behavior and one for functional behavior ?
-     */
-    interface BlueskyAjaxClientConfig {
-        jwtAuthToken: string;
-        currentUserRole: string;
-        currentUser?: UserSsoDto;
-        coreApiUrl?: string;
-        marketingApiUrl?: string;
-        quoteWizardUrl?: string;
-        orderEntryUrl?: string;
-        orderTrackingUrl?: string;
-    }
-}
-
-declare namespace bluesky.core.models.blueskyHttpClient {
-    interface IBlueskyHttpRequestConfig extends ng.IRequestShortcutConfig {
-        /**
-         * TODO MGA describe flags
-         */
-        endpointType?: EndpointType;
-        useJwtAuthToken?: boolean;
-        useCurrentUserRole?: boolean;
-        disableXmlHttpRequestHeader?: boolean;
-        disableToasterNotifications?: boolean;
-        file?: File;
-        uploadInBase64Json?: boolean;
-        uploadProgress?: () => any;
-    }
-}
-
-declare namespace bluesky.core.models.blueskyHttpClient {
-    enum EndpointType {
-        /** Use current domain from which the app was loaded. */
-        ORIGIN = 0,
-        /** Use CoreAPI url. By default, handles auth & userRole. */
-        CORE_API = 1,
-        /** Use MarketingAPI url. By default, ignores auth & userRole. */
-        MARKETING_API = 2,
-        /** Use QuoteWizard url of the current env. By default, ignores auth, session & userRole. */
-        QUOTE_WIZARD = 3,
-        /** Use OrderEntry url of the current env. By default, ignores auth, session & userRole. */
-        ORDER_ENTRY = 4,
-        /** Use OrderTracking url of the current env. By default, ignores auth, session & userRole. */
-        ORDER_TRACKING = 5,
-        /** External URL. By default, do nothing & pass it to $http service. */
-        EXTERNAL = 6,
-    }
-}
-
-declare namespace bluesky.core.models.blueskyHttpClient {
-    interface FileContent {
-        name: string;
-        size: number;
-        type: string;
-        content: ArrayBuffer;
     }
 }
