@@ -4,7 +4,10 @@
          * TODO MGA describe flags
          */
         endpointType?: EndpointType;
-        useJwtAuthToken?: boolean;
+
+        useCoreApiJwtAuthToken?: boolean;
+        //TODO MGA: use flags for other APIs using auth token ! &/or remove auth token param from this, as it's mandatory for apis using it ?
+
         useCurrentUserRole?: boolean;
         disableXmlHttpRequestHeader?: boolean;
         disableToasterNotifications?: boolean;

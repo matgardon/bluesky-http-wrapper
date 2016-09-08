@@ -4,14 +4,20 @@ declare namespace bluesky.core.models.blueskyHttpClient {
      * TODO MGA: those parameters are specific to our auth & user role workflow in BS. A technical service should not be aware of them (inversion of responsability): create 2 services, one for technical behavior and one for functional behavior ?
      */
     interface BlueskyAjaxClientConfig {
-        jwtAuthToken: string;
+        coreApiAuthToken: string;
+        coreApiAuthTokenValidityEndDate: Date;
         currentUserRole: string;
         currentUser?: UserSsoDto;
         coreApiUrl?: string;
         marketingApiUrl?: string;
+        selfCareApiUrl?: string;
         quoteWizardUrl?: string;
         orderEntryUrl?: string;
         orderTrackingUrl?: string;
+        technicalInventoryUrl?: string;
+        metranetUrl?: string;
+        templateGeneratorUrl?: string;
+        salesforceUrl?: string;
     }
 }
 
@@ -21,7 +27,7 @@ declare namespace bluesky.core.models.blueskyHttpClient {
          * TODO MGA describe flags
          */
         endpointType?: EndpointType;
-        useJwtAuthToken?: boolean;
+        useCoreApiJwtAuthToken?: boolean;
         useCurrentUserRole?: boolean;
         disableXmlHttpRequestHeader?: boolean;
         disableToasterNotifications?: boolean;

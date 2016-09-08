@@ -189,6 +189,8 @@
                         return this.Upload.upload<T>(<ng.angularFileUpload.IFileUploadConfigFile>requestConfig) //TODO MGA : not safe hard cast
                             .then<T>(this.onSuccess<T>(config), this.onError<T>(config), config.uploadProgress) //TODO MGA : uploadProgress callback ok ?
                             .finally(this.finally);
+
+                    return null; //TODO MGA: what to return ?
                 });
             }
         }
@@ -323,7 +325,8 @@
                     //TODO MGA: how to handle OM apps external calls without session provided ? will result in a redirect and call will probably fail ...
                     baseUrl = this.blueskyAjaxClientConfig.orderTrackingUrl;
 
-                } else if (endpointType === EndpointType.ORIGIN) {
+                } //TODO MGA: handle other endpoints !!! TI, MN, TG etc
+                else if (endpointType === EndpointType.ORIGIN) {
 
                     // Regex trying to determine if the input fragment contains a / between two character suites => controller given as input, otherwise, action on same controller expected
                     var controllerIsPresentRegex = /\w+\/\w+/;
@@ -416,14 +419,14 @@
                 // Reject explicitly wrong input configurations
                 if (config.disableXmlHttpRequestHeader ||
                     config.useCurrentUserRole === false ||
-                    config.useJwtAuthToken === false) {
+                    config.useCoreApiJwtAuthToken === false) {
                     this.$log.warn(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - CoreAPI call intended with incompatible configuration options. Aborting ajax call.`, config);
                     return null;
                 }
 
                 // config values for CoreAPI endpoint are different from default, so we must specify them.
                 config.disableXmlHttpRequestHeader = false;
-                config.useJwtAuthToken = true;
+                config.useCoreApiJwtAuthToken = true;
                 config.useCurrentUserRole = true;
             } else if (config.endpointType === EndpointType.MARKETING_API ||
                 config.endpointType === EndpointType.ORIGIN ||
@@ -432,7 +435,7 @@
                 config.endpointType === EndpointType.ORDER_TRACKING) {
                 // TODO MGA: provide more complete feedbacks on those specific endpoints ?
                 if (config.useCurrentUserRole ||
-                    config.useJwtAuthToken)
+                    config.useCoreApiJwtAuthToken)
                     this.$log.warn('[BlueskyHttpWrapper][configureHttpCall] - UserRole & JwtToken should not be provided for target endpoint. ');
 
             } else if (config.endpointType === EndpointType.EXTERNAL) {
@@ -444,7 +447,7 @@
             //TODO MGA: set default values after endpoint-specific configurations
             config.disableXmlHttpRequestHeader = config.disableXmlHttpRequestHeader || false; // default value is enabled (ajax calls on .NET endpoints).
             config.useCurrentUserRole = config.useCurrentUserRole || false; // default value: don't transmit sensitive information to remote if not explicitly specified.
-            config.useJwtAuthToken = config.useJwtAuthToken || false; // default value: don't transmit sensitive information to remote if not explicitly specified.
+            config.useCoreApiJwtAuthToken = config.useCoreApiJwtAuthToken || false; // default value: don't transmit sensitive information to remote if not explicitly specified.
             config.disableToasterNotifications = config.disableToasterNotifications || false; //set default value for disableToasterNotifications to false as it's part of the normal behavior expected for this service.
 
 
@@ -470,14 +473,14 @@
                 configFull.headers['OA-UserRole'] = this.blueskyAjaxClientConfig.currentUserRole;
             }
 
-            if (config.useJwtAuthToken) {
+            if (config.useCoreApiJwtAuthToken) {
                 // Reject call when missing mandatory information
-                if (!this.blueskyAjaxClientConfig || !this.blueskyAjaxClientConfig.jwtAuthToken) {
+                if (!this.blueskyAjaxClientConfig || !this.blueskyAjaxClientConfig.coreApiAuthToken) {
                     this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - Ajax call intended without necessary jwtToken in blueskyAjaxClientConfig. Aborting.`);
                     return null;
                 }
                 //TODO MGA: hard coded header to put in CONST
-                configFull.headers['Authorization'] = 'Bearer ' + this.blueskyAjaxClientConfig.jwtAuthToken;
+                configFull.headers['Authorization'] = 'Bearer ' + this.blueskyAjaxClientConfig.coreApiAuthToken;
             }
 
             //TODO MGA: OE specific code, to remove, or at least put in as config param
