@@ -1,12 +1,13 @@
 ﻿namespace bluesky.core.models.blueskyHttpClient {
-    export interface IBlueskyHttpRequestConfig extends ng.IRequestShortcutConfig {
-        /**
-         * TODO MGA describe flags
-         */
-        endpointType?: EndpointType;
 
-        useCoreApiJwtAuthToken?: boolean;
-        //TODO MGA: use flags for other APIs using auth token ! &/or remove auth token param from this, as it's mandatory for apis using it ?
+    import EndpointTypeEnum = core.models.clientConfig.EndpointTypeEnum;
+
+    /**
+     * TODO MGA Doc
+     */
+    export interface IBlueskyHttpRequestConfig extends ng.IRequestShortcutConfig {
+
+        endpointType?: EndpointTypeEnum;
 
         useCurrentUserRole?: boolean;
         disableXmlHttpRequestHeader?: boolean;

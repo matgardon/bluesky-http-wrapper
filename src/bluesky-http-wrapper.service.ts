@@ -2,16 +2,12 @@
 
     import UserRoleEntryDto = bluesky.core.models.userManagement.UserRoleEntryDto;
     import UserSsoDto = bluesky.core.models.userManagement.UserSsoDto;
-    import BlueskyAjaxClientConfig = bluesky.core.models.blueskyHttpClient.BlueskyAjaxClientConfig;
     import BlueskyHttpRequestConfig = bluesky.core.models.blueskyHttpClient.IBlueskyHttpRequestConfig;
     import FileContent = bluesky.core.models.blueskyHttpClient.FileContent;
-    import EndpointType = bluesky.core.models.blueskyHttpClient.EndpointType;
+    import BlueskyAjaxClientConfigurationDto = bluesky.core.models.clientConfig.BlueskyAjaxClientConfigurationDto;
+    import EndpointTypeEnum = bluesky.core.models.clientConfig.EndpointTypeEnum;
 
     enum HttpMethod { GET, POST, PUT, DELETE };
-
-    //TODO MGA: make this injectable // configurable in config phase
-    const CORE_API_ENDPOINT_SUFFIX = 'api';
-    const MARKETING_API_ENDPOINT_SUFFIX = 'api';
 
     /**
      * TODO MGA comment
@@ -22,7 +18,7 @@
          * All srv-side configuration of this http client, provided by the injected 'configInitializationURL' endpoint.
          * This configuration data is loaded upon initialization of this service (to be used as a singleton in the app). All other web calls are blocked as long as this one is not finished.
          */
-        blueskyAjaxClientConfig: BlueskyAjaxClientConfig;
+        blueskyAjaxClientConfig: BlueskyAjaxClientConfigurationDto;
 
         get<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
 
@@ -45,7 +41,7 @@
 
         private getConfigPromise: ng.IPromise<any>;
 
-        public blueskyAjaxClientConfig: BlueskyAjaxClientConfig;
+        public blueskyAjaxClientConfig: BlueskyAjaxClientConfigurationDto;
 
         //#endregion
 
@@ -53,6 +49,7 @@
 
         /* @ngInject */
         constructor(
+            private _: UnderscoreStatic,
             private $http: ng.IHttpService,
             private $window: ng.IWindowService,
             private $log: ng.ILogService,
@@ -66,63 +63,65 @@
 
             // 1 - fetch the configuration data necessary for this service to run from the provided endpoint
 
-            var configurationEndpointUrl = this.buildUrlFromContext(configInitializationURL, EndpointType.ORIGIN);
+            var configurationEndpointUrl = this.buildUrlFromContext(configInitializationURL, EndpointTypeEnum.CurrentDomain);
 
             if (!configurationEndpointUrl) {
-                this.$log.error(`[BlueskyHttpWrapper][Initialization] - Unable to build url from initialConfig url '${configInitializationURL}' with endpointType '${EndpointType[EndpointType.ORIGIN]}'. Aborting blueskyHttpService init.`);
+                this.$log.error(`[BlueskyHttpWrapper][Initialization] - Unable to build url from initialConfig url '${configInitializationURL}' with endpointType '${EndpointTypeEnum[EndpointTypeEnum.CurrentDomain]}'. Aborting blueskyHttpService init.`);
                 return;
             }
 
-            this.getConfigPromise = this.$http.get<BlueskyAjaxClientConfig>(configurationEndpointUrl)
-                .then<BlueskyAjaxClientConfig>(
-                    // success
-                    (clientConfigPromise) => {
-                        //TODO MGA: reject status not in 2XX ?
-                        if (!clientConfigPromise.data) {
-                            var msg = `Unable to retrieve http config data from '${configInitializationURL}'. Aborting blueskyHttpWrapperService initialization.`;
-                            this.$log.error(msg);
-                            //TODO MGA: toaster ?
-                            return this.$q.reject(msg);
-                        }
+            this.getConfigPromise = this.$http.get<BlueskyAjaxClientConfigurationDto>(configurationEndpointUrl)
+                .then<BlueskyAjaxClientConfigurationDto>(
+                // success
+                (clientConfigPromise) => {
+                    //TODO MGA: reject status not in 2XX ?
+                    if (!clientConfigPromise.data) {
+                        var msg = `Unable to retrieve http config data from '${configInitializationURL}'. Aborting blueskyHttpWrapperService initialization.`;
+                        this.$log.error(msg);
+                        //TODO MGA: toaster ?
+                        return this.$q.reject(msg);
+                    }
 
-                        this.blueskyAjaxClientConfig = clientConfigPromise.data;
-                        return clientConfigPromise.data;
-                    },
-                    // error
-                    (error) => {
-                        this.$log.error('Unable to retrieve API config. Aborting blueskyHttpWrapperService initialization.');
-                        return this.$q.reject(error);
-                    })
-                .then<BlueskyAjaxClientConfig>(
-                    // success
-                    (blueskyClientConfig) => {
-                        //TODO MGA: handle case where client-side userRole was provided and not == srv-side user role ?
-                        if (!blueskyClientConfig.currentUserRole) {
-                            //If not provided by domain from which code was loaded, then try to fetch default userRole from CAPI endpoint
-                            return this.get<UserSsoDto>('user-sso?profile=', { endpointType: EndpointType.CORE_API }).then<BlueskyAjaxClientConfig>(
-                                (userSso) => {
-                                    if (!userSso || !userSso.userRoleEntry) {
-                                        var msg = 'Unable to retrieve CoreAPI default userSSO. Aborting httpWrapperService initialization.';
-                                        this.$log.error(msg);
-                                        return this.$q.reject(msg);
-                                    }
+                    this.blueskyAjaxClientConfig = clientConfigPromise.data;
+                    return clientConfigPromise.data;
+                },
+                // error
+                (error) => {
+                    this.$log.error('Unable to retrieve API config. Aborting blueskyHttpWrapperService initialization.');
+                    return this.$q.reject(error);
+                })
+                .then<BlueskyAjaxClientConfigurationDto>(
+                // success
+                (blueskyClientConfig) => {
+                    //TODO MGA: handle case where client-side userRole was provided and not == srv-side user role !
+                    if (!blueskyClientConfig.currentUserRole) {
+                        //If not provided by domain from which code was loaded, then try to fetch default userRole from CAPI endpoint
+                        return this.get<UserSsoDto>('user-sso?profile=', { endpointType: EndpointTypeEnum.CoreApi }).then<BlueskyAjaxClientConfigurationDto>(
+                            (userSso) => {
+                                if (!userSso || !userSso.userRoleEntry) {
+                                    var msg = 'Unable to retrieve CoreAPI default userSSO. Aborting httpWrapperService initialization.';
+                                    this.$log.error(msg);
+                                    return this.$q.reject(msg);
+                                }
 
-                                    var userRoleToUse = selectedUserRole || userSso.userRoleEntry;
+                                //TODO MGA: make sure selectedUserRole is available in the list of userSSO roles, otherwise select default !
+                                //TODO MGA: how to inform back the DA that selectedUserRole was reset ? invert responsability & store userRole in localStorage from this service ?
+                                var userRoleToUse = selectedUserRole || userSso.userRoleEntry;
 
-                                    //TODO MGA: this needs to be put in shared extension method / service
-                                    this.blueskyAjaxClientConfig.currentUserRole = userRoleToUse.name + " " + userRoleToUse.role + " " + userRoleToUse.silo;
+                                //TODO MGA: this needs to be put in shared extension method / service
+                                this.blueskyAjaxClientConfig.currentUserRole = userRoleToUse.name + " " + userRoleToUse.role + " " + userRoleToUse.silo;
 
-                                    this.blueskyAjaxClientConfig.currentUser = userSso;
+                                this.blueskyAjaxClientConfig.currentUser = userSso;
 
-                                    return blueskyClientConfig;
-                                });
-                        } else {
+                                return blueskyClientConfig;
+                            });
+                    } else {
 
-                            //TODO MGA: we only load userSSO if no userRole was provided srv-side, should we load it in all cases ?
+                        //TODO MGA: we only load userSSO if no userRole was provided srv-side, should we load it in all cases ?
 
-                            // already defined userRole sent from origin app, use it & set it as default.
-                            return blueskyClientConfig;
-                        }
+                        // already defined userRole sent from origin app, use it & set it as default.
+                        return blueskyClientConfig;
+                    }
                 });
         }
 
@@ -250,7 +249,7 @@
          * @param urlInput : TODO MGA: document different kind of urls that this method can take as input (full, partial etc)
          * @return null if not able to compute url. Otherwise, url of the request either partial or full based on endpointType.
          */
-        public buildUrlFromContext(urlInput: string, endpointType?: EndpointType): string {
+        public buildUrlFromContext(urlInput: string, endpointType?: EndpointTypeEnum): string {
 
             if (!urlInput) {
                 this.$log.error('No URL input provided.');
@@ -260,100 +259,68 @@
             // If Url starts with http:// or https:// => return as is, even if endpointType is not external.
             if (urlInput.slice(0, 'http://'.length) === 'http://' ||
                 urlInput.slice(0, 'https://'.length) === 'https://') {
+
+                if (endpointType !== EndpointTypeEnum.External)
+                    this.$log.warn('Full URL provided for a call that is not flagged as \'External\' endpointType, this is bad practice as only the blueskyWrapper should know about the baseURL of target endpoints (loaded from server, depending on the current env). Use partial URLs.');
+
                 return urlInput;
             }
 
             // Else, we have a partial URL to complete: use provided endpoint type to determine how to complete url.
 
             // Default value for endpointType if not provided is origin. TODO MGA: rule to discuss, here for retro-compatibility.
-            endpointType = endpointType || EndpointType.ORIGIN;
+            endpointType = endpointType || EndpointTypeEnum.CurrentDomain;
 
-            if (endpointType === EndpointType.EXTERNAL) {
-                this.$log.warn('Partial url provided for an external endpoint: the call will probably fail.');
+            var baseUrl: string;
+
+            if (endpointType === EndpointTypeEnum.External) {
+                this.$log.warn('Partial url provided for a call with endpointType flagged as \'External\': the call will probably fail.');
+
                 // do not modify provided url if external (we cannot know how to complete it, even if partial).
                 return urlInput;
+
+            } else if (endpointType === EndpointTypeEnum.CurrentDomain) {
+
+                // Regex trying to determine if the input fragment contains a / between two character suites => controller given as input, otherwise, action on same controller expected
+                var controllerIsPresentRegex = /\w+\/\w+/;
+
+                var actionIsOnSameController = !controllerIsPresentRegex.test(urlInput);
+
+                baseUrl = this.getUrlPath(actionIsOnSameController);
             } else {
-                //Compute url as combination of base url & url fragment given as input
+                // For all other endpointTypes: compute URL as a combination of baseURL & suffix if present, as provided by server-configuration.
 
-                var baseUrl: string = null;
-
-                if (endpointType === EndpointType.CORE_API) {
-
-                    if (!this.blueskyAjaxClientConfig || !this.blueskyAjaxClientConfig.coreApiUrl) {
-                        this.$log.error('Missing coreApiUrl in BlueskyAjaxClientConfig. cannot build valid url.');
-                        return null;
-                    }
-
-                    baseUrl = this.blueskyAjaxClientConfig.coreApiUrl + CORE_API_ENDPOINT_SUFFIX;
-
-                } else if (endpointType === EndpointType.MARKETING_API) {
-
-                    if (!this.blueskyAjaxClientConfig || !this.blueskyAjaxClientConfig.marketingApiUrl) {
-                        this.$log.error('Missing marketingApiUrl in BlueskyAjaxClientConfig. cannot build valid url.');
-                        return null;
-                    }
-
-                    baseUrl = this.blueskyAjaxClientConfig.marketingApiUrl + MARKETING_API_ENDPOINT_SUFFIX;
-
-                } else if (endpointType === EndpointType.QUOTE_WIZARD) {
-
-                    if (!this.blueskyAjaxClientConfig || !this.blueskyAjaxClientConfig.quoteWizardUrl) {
-                        this.$log.error('Missing quoteWizardUrl in BlueskyAjaxClientConfig. cannot build valid url.');
-                        return null;
-                    }
-
-                    //TODO MGA: how to handle OM apps external calls without session provided ? will result in a redirect and call will probably fail ...
-                    baseUrl = this.blueskyAjaxClientConfig.quoteWizardUrl;
-
-                } else if (endpointType === EndpointType.ORDER_ENTRY) {
-
-                    if (!this.blueskyAjaxClientConfig || !this.blueskyAjaxClientConfig.orderEntryUrl) {
-                        this.$log.error('Missing orderEntryUrl in BlueskyAjaxClientConfig. cannot build valid url.');
-                        return null;
-                    }
-
-                    //TODO MGA: how to handle OM apps external calls without session provided ? will result in a redirect and call will probably fail ...
-                    baseUrl = this.blueskyAjaxClientConfig.orderEntryUrl;
-
-                } else if (endpointType === EndpointType.ORDER_TRACKING) {
-
-                    if (!this.blueskyAjaxClientConfig || !this.blueskyAjaxClientConfig.orderTrackingUrl) {
-                        this.$log.error('Missing orderTrackingUrl in BlueskyAjaxClientConfig. cannot build valid url.');
-                        return null;
-                    }
-
-                    //TODO MGA: how to handle OM apps external calls without session provided ? will result in a redirect and call will probably fail ...
-                    baseUrl = this.blueskyAjaxClientConfig.orderTrackingUrl;
-
-                } //TODO MGA: handle other endpoints !!! TI, MN, TG etc
-                else if (endpointType === EndpointType.ORIGIN) {
-
-                    // Regex trying to determine if the input fragment contains a / between two character suites => controller given as input, otherwise, action on same controller expected
-                    var controllerIsPresentRegex = /\w+\/\w+/;
-
-                    var actionIsOnSameController = !controllerIsPresentRegex.test(urlInput);
-
-                    baseUrl = this.getUrlPath(actionIsOnSameController);
-
-                } else {
-                    this.$log.error('Unsupported endpointType provided. Should not happen (expected default value Origin). Aborting.');
+                if (!this.blueskyAjaxClientConfig ||
+                    !this.blueskyAjaxClientConfig.endpointConfigurationDictionnary) {
+                    this.$log.error('Expected endpointConfigurationDictionnary provided but none found. Aborting.');
                     return null;
                 }
 
-                // Boolean used to try to determine correct full url (add / or not before the url fragment depending on if found or not)
-                var urlFragmentStartsWithSlash = urlInput.slice(0, 1) === '/';
-                var baseUrlFragmentEndsWithSlash = baseUrl.slice(baseUrl.length - 1, baseUrl.length) === '/';
+                var endpointConfig = this.blueskyAjaxClientConfig.endpointConfigurationDictionnary[endpointType];
 
-                //based on starting/trailing slashes, return full url.
-                if (baseUrlFragmentEndsWithSlash && urlFragmentStartsWithSlash)
-                    // remove last '/' on baseUrl
-                    return baseUrl.slice(0, baseUrl.length - 1) + urlInput;
-                else if (!baseUrlFragmentEndsWithSlash && !urlFragmentStartsWithSlash)
-                    return baseUrl + '/' + urlInput;
-                else if ((baseUrlFragmentEndsWithSlash && !urlFragmentStartsWithSlash) ||
-                    (!baseUrlFragmentEndsWithSlash && urlFragmentStartsWithSlash))
-                    return baseUrl + urlInput;
+                if (!endpointConfig) {
+                    this.$log.error(`EndpointType '${EndpointTypeEnum[endpointType]}' is not 'External' or 'CurrentDomain', expected corresponding endpointConfiguration provided in blueskyAjaxClientConfig.endpointConfigurationDictionnary but none found. Aborting.`);
+                    return null;
+                }
+
+                baseUrl = endpointConfig.endpointBaseURL + (endpointConfig.endpointSuffix || '');
             }
+
+            //TODO MGA: how to handle OM apps external calls without session provided ? will result in a redirect and call may fail ?
+
+            // Boolean used to try to determine correct full url (add / or not before the url fragment depending on if found or not)
+            var urlFragmentStartsWithSlash = urlInput.slice(0, 1) === '/';
+            var baseUrlFragmentEndsWithSlash = baseUrl.slice(baseUrl.length - 1, baseUrl.length) === '/';
+
+            //based on starting/trailing slashes, return full url.
+            if (baseUrlFragmentEndsWithSlash && urlFragmentStartsWithSlash)
+                // remove last '/' on baseUrl
+                return baseUrl.slice(0, baseUrl.length - 1) + urlInput;
+            else if (!baseUrlFragmentEndsWithSlash && !urlFragmentStartsWithSlash)
+                return baseUrl + '/' + urlInput;
+            else if ((baseUrlFragmentEndsWithSlash && !urlFragmentStartsWithSlash) ||
+                (!baseUrlFragmentEndsWithSlash && urlFragmentStartsWithSlash))
+                return baseUrl + urlInput;
 
             return null;
         }
@@ -402,7 +369,7 @@
 
             config = config || {};
 
-            config.endpointType = config.endpointType || EndpointType.ORIGIN; // default value: if not specified, endpoint to use is supposed to be the origin. 
+            config.endpointType = config.endpointType || EndpointTypeEnum.CurrentDomain; // default value: if not specified, endpoint to use is supposed to be the origin.
 
             //TODO MGA: hard cast is not safe, we may forget to set url & method parameters. TOFIX.
             // automatically get all non-filtered parameters & keep them for this new object.
@@ -414,48 +381,65 @@
             configFull.headers = config.headers || {};
 
             // configure default config flags based on target endpoint
-            if (config.endpointType === EndpointType.CORE_API) {
+            switch (config.endpointType) {
+                case EndpointTypeEnum.CoreApi:
+                case EndpointTypeEnum.MarketingApi:
+                case EndpointTypeEnum.SelfcareApi:
+                    // Reject explicitly wrong input configurations
+                    if (config.disableXmlHttpRequestHeader) {
+                        this.$log.warn(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - API call intended with incompatible configuration options. Aborting ajax call.`, config);
+                        return null;
+                    }
 
-                // Reject explicitly wrong input configurations
-                if (config.disableXmlHttpRequestHeader ||
-                    config.useCurrentUserRole === false ||
-                    config.useCoreApiJwtAuthToken === false) {
-                    this.$log.warn(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - CoreAPI call intended with incompatible configuration options. Aborting ajax call.`, config);
-                    return null;
-                }
+                    // config values for API endpoints are different from default, so we must specify them.
+                    config.disableXmlHttpRequestHeader = false; // by default already enabled, but enfore this header as necessary for calls to WebAPI endpoints.
+                    config.useCurrentUserRole = true; // for api calls, force this role to be passed around (should be mandatory to contextualize request to realm of current user).
+                    break;
+                case EndpointTypeEnum.QuoteWizard:
+                case EndpointTypeEnum.OrderEntry:
+                case EndpointTypeEnum.OrderTracking:
+                    // for OM apps called as endpoints, make sure the XmlHttpRequest header is present (ASP.NET apps).
+                    config.disableXmlHttpRequestHeader = false;
+                    //TODO MGA: add currentUserRole by default so that OM apps can contextualise the request ?
+                    break;
+                case EndpointTypeEnum.Metranet:
+                case EndpointTypeEnum.TechnicalInventory:
+                case EndpointTypeEnum.TemplateGenerator:
+                case EndpointTypeEnum.Salesforce:
+                    //TODO MGA: no specific config for those external endpoints ? add custom ones if needed here.
+                    break;
+                case EndpointTypeEnum.CurrentDomain:
+                    // for ajax calls, make sure the XmlHttpRequest header is present (ASP.NET apps).
+                    config.disableXmlHttpRequestHeader = false;
+                    break;
+                case EndpointTypeEnum.External:
+                    //TODO MGA to confirm
+                    config.disableXmlHttpRequestHeader = true; // do not add XmlHttpRequest if external Url by default: might create conflicts on certain servers.
+                    break;
+                default:
+                    this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Unsupported endpointType provided: '${EndpointTypeEnum[config.endpointType]}'. Aborting.`);
+                    break;
+            }
 
-                // config values for CoreAPI endpoint are different from default, so we must specify them.
-                config.disableXmlHttpRequestHeader = false;
-                config.useCoreApiJwtAuthToken = true;
-                config.useCurrentUserRole = true;
-            } else if (config.endpointType === EndpointType.MARKETING_API ||
-                config.endpointType === EndpointType.ORIGIN ||
-                config.endpointType === EndpointType.QUOTE_WIZARD ||
-                config.endpointType === EndpointType.ORDER_ENTRY ||
-                config.endpointType === EndpointType.ORDER_TRACKING) {
-                // TODO MGA: provide more complete feedbacks on those specific endpoints ?
-                if (config.useCurrentUserRole ||
-                    config.useCoreApiJwtAuthToken)
-                    this.$log.warn('[BlueskyHttpWrapper][configureHttpCall] - UserRole & JwtToken should not be provided for target endpoint. ');
-
-            } else if (config.endpointType === EndpointType.EXTERNAL) {
-                config.disableXmlHttpRequestHeader = true; // do not add XmlHttpRequest if external Url by default: might create conflicts on certain servers. TODO MGA to confirm
-            } else {
-                this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Unsupported endpointType provided: '${EndpointType[config.endpointType]}'. Aborting.`);
+            //Reject ajax calls intended to external endpoints without necessary configuration loaded from the server.
+            if (config.endpointType !== EndpointTypeEnum.CurrentDomain &&
+                config.endpointType !== EndpointTypeEnum.External &&
+                (!this.blueskyAjaxClientConfig ||
+                    !this.blueskyAjaxClientConfig.endpointConfigurationDictionnary[config.endpointType])) {
+                this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - Ajax call intended without expected endpoint configuration loaded from the server for endpointType '${EndpointTypeEnum[config.endpointType]}'. Aborting.`);
+                return null;
             }
 
             //TODO MGA: set default values after endpoint-specific configurations
             config.disableXmlHttpRequestHeader = config.disableXmlHttpRequestHeader || false; // default value is enabled (ajax calls on .NET endpoints).
             config.useCurrentUserRole = config.useCurrentUserRole || false; // default value: don't transmit sensitive information to remote if not explicitly specified.
-            config.useCoreApiJwtAuthToken = config.useCoreApiJwtAuthToken || false; // default value: don't transmit sensitive information to remote if not explicitly specified.
             config.disableToasterNotifications = config.disableToasterNotifications || false; //set default value for disableToasterNotifications to false as it's part of the normal behavior expected for this service.
-
 
             // Try to build a valid url from input & endpointType.
             configFull.url = this.buildUrlFromContext(url, config.endpointType);
 
             if (!configFull.url) {
-                this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] - Unable to build url from urlInput '${url}' with endpointType '${EndpointType[config.endpointType]}'. Aborting ajax call.`);
+                this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] - Unable to build url from urlInput '${url}' with endpointType '${EndpointTypeEnum[config.endpointType]}'. Aborting ajax call.`);
                 return null;
             }
 
@@ -465,22 +449,25 @@
 
             if (config.useCurrentUserRole) {
                 // Reject call when missing mandatory information
-                if (!this.blueskyAjaxClientConfig || !this.blueskyAjaxClientConfig.currentUserRole) {
-                    this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - Ajax call intended without necessary userRole in blueskyAjaxClientConfig. Aborting.`);
+                if (!this.blueskyAjaxClientConfig.currentUserRole) {
+                    this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - Ajax call intended without necessary userRole set in config. Aborting.`);
                     return null;
                 }
                 //TODO MGA: hard coded header to put in CONST
                 configFull.headers['OA-UserRole'] = this.blueskyAjaxClientConfig.currentUserRole;
             }
 
-            if (config.useCoreApiJwtAuthToken) {
-                // Reject call when missing mandatory information
-                if (!this.blueskyAjaxClientConfig || !this.blueskyAjaxClientConfig.coreApiAuthToken) {
-                    this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - Ajax call intended without necessary jwtToken in blueskyAjaxClientConfig. Aborting.`);
-                    return null;
-                }
+            var currentEndpointConfig = this.blueskyAjaxClientConfig && this.blueskyAjaxClientConfig.endpointConfigurationDictionnary[config.endpointType];
+        
+            // If auth token provided for target endpoint, add it in header
+            if (currentEndpointConfig.authToken) {
+
+                //TODO MGA: reject authToken for endpoints that are not 'safe' to share auth token with, such as External ones ? Or authorize this so that server can load an auth token for certain external endpoints ?
+
+                //TODO MGA: handle token validity endDate: renew auth before the call ! What's the best moment to do it ?
+
                 //TODO MGA: hard coded header to put in CONST
-                configFull.headers['Authorization'] = 'Bearer ' + this.blueskyAjaxClientConfig.coreApiAuthToken;
+                configFull.headers['Authorization'] = 'Bearer ' + currentEndpointConfig.authToken;
             }
 
             //TODO MGA: OE specific code, to remove, or at least put in as config param
@@ -602,22 +589,35 @@
         }
 
         // TODO MGA : using method from Layout.js : to document to not handle duplicate code !!
+        //TODO MGA: unrobust, needs solid refacto to make it more generic when on origin domain !
         private getUrlPath(actionIsOnSameController: boolean): string {
 
-            var baseUrlRegex = /(\/\w+\/\(S\(\w+\)\))\/\w+/;
+            var baseUrlOmAppsRegex = /(\/\w+\/\(S\(\w+\)\))\/\w+/;
+            var baseUrlAspAppsRegex = /(\/\w+)\/\w+/;
+
             var url = this.$window.location.pathname;
-            var baseUrlMatches = baseUrlRegex.exec(url);
+            var baseUrlOmAppsMatches = baseUrlOmAppsRegex.exec(url);
+            var baseUrlAspAppsMatches = baseUrlAspAppsRegex.exec(url);
 
-            if (baseUrlMatches && baseUrlMatches.length && baseUrlMatches.length === 2) {
+            var baseUrlWithControllerName: string = null;
+            var baseUrl: string = null;
 
-                var baseUrlWithControllerName = baseUrlMatches[0];
-                var baseUrl = baseUrlMatches[1];
+            // 2 matches = regex matches + the capturing group
+            if (baseUrlOmAppsMatches && baseUrlOmAppsMatches.length && baseUrlOmAppsMatches.length === 2) {
 
-                if (actionIsOnSameController) {
-                    return baseUrlWithControllerName;
-                } else {
-                    return baseUrl;
-                }
+                baseUrlWithControllerName = baseUrlOmAppsMatches[0];
+                baseUrl = baseUrlOmAppsMatches[1];
+            }
+
+            if (baseUrlAspAppsMatches && baseUrlAspAppsMatches.length && baseUrlAspAppsMatches.length === 2) {
+                baseUrlWithControllerName = baseUrlAspAppsMatches[0];
+                baseUrl = baseUrlAspAppsMatches[1];
+            }
+
+            if (actionIsOnSameController && baseUrlWithControllerName) {
+                return baseUrlWithControllerName;
+            } else if (baseUrl) {
+                return baseUrl;
             }
 
             return '';

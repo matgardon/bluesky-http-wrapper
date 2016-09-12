@@ -11,7 +11,7 @@
 
         //#region private properties
 
-        private getClientConfigInitializationUrl: string = 'CoreApiAuth/GetCoreApiConfig'; // by default: TODO MGA change it in all OM apps ! not a meaningfull name.
+        private getClientConfigInitializationUrl: string = 'BlueskyAjaxClientConfiguration/GetAjaxClientConfiguration'; // by default.
         private selectedUserRole: UserRoleEntryDto = null; // by default not-set.
 
         //#endregion
@@ -30,7 +30,8 @@
 
         // Provider's factory function
         /* @ngInject */
-        public $get = ($http: ng.IHttpService,
+        public $get = (_: UnderscoreStatic,
+            $http: ng.IHttpService,
             $window: ng.IWindowService,
             $log: ng.ILogService,
             $q: ng.IQService,
@@ -38,10 +39,12 @@
             Upload: ng.angularFileUpload.IUploadService,
             toaster: ngtoaster.IToasterService): services.IBlueskyHttpWrapper => {
 
-            return new services.BlueskyHttpWrapper($http, $window, $log, $q, $location, Upload, toaster, this.getClientConfigInitializationUrl, this.selectedUserRole);
+            return new services.BlueskyHttpWrapper(_, $http, $window, $log, $q, $location, Upload, toaster, this.getClientConfigInitializationUrl, this.selectedUserRole);
         }
     }
 
     angular.module('bluesky.httpWrapper', ['toaster', 'ngAnimate', 'ngFileUpload'])
-           .provider('blueskyHttpWrapper', BlueskyHttpWrapperProvider);
+        .constant<UnderscoreStatic>('_', window._)
+        .constant<moment.MomentStatic>('moment', window.moment)
+        .provider('blueskyHttpWrapper', BlueskyHttpWrapperProvider);
 }

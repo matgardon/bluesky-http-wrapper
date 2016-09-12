@@ -5,6 +5,8 @@
     "angularjs-toaster": "registry:dt/angularjs-toaster#0.4.13+20160317120654",
     "bluesky-core-models": "file:bower_components/bluesky-core-models/dist/bluesky-core-models.d.ts",
     "jquery": "registry:dt/jquery#1.10.0+20160704162008",
-    "ng-file-upload": "registry:dt/ng-file-upload#0.0.0+20160317120654"
+    "moment": "registry:dt/moment#2.11.1+20160829143156",
+    "ng-file-upload": "registry:dt/ng-file-upload#0.0.0+20160317120654",
+    "underscore": "registry:dt/underscore#1.8.3+20160908111004"
   }
 }

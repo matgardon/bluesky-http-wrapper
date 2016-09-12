@@ -1,58 +1,16 @@
 declare namespace bluesky.core.models.blueskyHttpClient {
-    import UserSsoDto = bluesky.core.models.userManagement.UserSsoDto;
+    import EndpointTypeEnum = core.models.clientConfig.EndpointTypeEnum;
     /**
-     * TODO MGA: those parameters are specific to our auth & user role workflow in BS. A technical service should not be aware of them (inversion of responsability): create 2 services, one for technical behavior and one for functional behavior ?
+     * TODO MGA Doc
      */
-    interface BlueskyAjaxClientConfig {
-        coreApiAuthToken: string;
-        coreApiAuthTokenValidityEndDate: Date;
-        currentUserRole: string;
-        currentUser?: UserSsoDto;
-        coreApiUrl?: string;
-        marketingApiUrl?: string;
-        selfCareApiUrl?: string;
-        quoteWizardUrl?: string;
-        orderEntryUrl?: string;
-        orderTrackingUrl?: string;
-        technicalInventoryUrl?: string;
-        metranetUrl?: string;
-        templateGeneratorUrl?: string;
-        salesforceUrl?: string;
-    }
-}
-
-declare namespace bluesky.core.models.blueskyHttpClient {
     interface IBlueskyHttpRequestConfig extends ng.IRequestShortcutConfig {
-        /**
-         * TODO MGA describe flags
-         */
-        endpointType?: EndpointType;
-        useCoreApiJwtAuthToken?: boolean;
+        endpointType?: EndpointTypeEnum;
         useCurrentUserRole?: boolean;
         disableXmlHttpRequestHeader?: boolean;
         disableToasterNotifications?: boolean;
         file?: File;
         uploadInBase64Json?: boolean;
         uploadProgress?: () => any;
-    }
-}
-
-declare namespace bluesky.core.models.blueskyHttpClient {
-    enum EndpointType {
-        /** Use current domain from which the app was loaded. */
-        ORIGIN = 0,
-        /** Use CoreAPI url. By default, handles auth & userRole. */
-        CORE_API = 1,
-        /** Use MarketingAPI url. By default, ignores auth & userRole. */
-        MARKETING_API = 2,
-        /** Use QuoteWizard url of the current env. By default, ignores auth, session & userRole. */
-        QUOTE_WIZARD = 3,
-        /** Use OrderEntry url of the current env. By default, ignores auth, session & userRole. */
-        ORDER_ENTRY = 4,
-        /** Use OrderTracking url of the current env. By default, ignores auth, session & userRole. */
-        ORDER_TRACKING = 5,
-        /** External URL. By default, do nothing & pass it to $http service. */
-        EXTERNAL = 6,
     }
 }
 
@@ -78,16 +36,16 @@ declare namespace bluesky.core.services {
         private selectedUserRole;
         setClientConfigURL(clientConfigUrlToUse: string): void;
         setUserRoleToUse(userRole: UserRoleEntryDto): void;
-        $get: ($http: ng.IHttpService, $window: ng.IWindowService, $log: ng.ILogService, $q: ng.IQService, $location: ng.ILocationService, Upload: ng.angularFileUpload.IUploadService, toaster: ngtoaster.IToasterService) => IBlueskyHttpWrapper;
+        $get: (_: UnderscoreStatic, $http: ng.IHttpService, $window: ng.IWindowService, $log: ng.ILogService, $q: ng.IQService, $location: ng.ILocationService, Upload: ng.angularFileUpload.IUploadService, toaster: ngtoaster.IToasterService) => IBlueskyHttpWrapper;
     }
 }
 
 declare namespace bluesky.core.services {
     import UserRoleEntryDto = bluesky.core.models.userManagement.UserRoleEntryDto;
-    import BlueskyAjaxClientConfig = bluesky.core.models.blueskyHttpClient.BlueskyAjaxClientConfig;
     import BlueskyHttpRequestConfig = bluesky.core.models.blueskyHttpClient.IBlueskyHttpRequestConfig;
     import FileContent = bluesky.core.models.blueskyHttpClient.FileContent;
-    import EndpointType = bluesky.core.models.blueskyHttpClient.EndpointType;
+    import BlueskyAjaxClientConfigurationDto = bluesky.core.models.clientConfig.BlueskyAjaxClientConfigurationDto;
+    import EndpointTypeEnum = bluesky.core.models.clientConfig.EndpointTypeEnum;
     /**
      * TODO MGA comment
      */
@@ -96,7 +54,7 @@ declare namespace bluesky.core.services {
          * All srv-side configuration of this http client, provided by the injected 'configInitializationURL' endpoint.
          * This configuration data is loaded upon initialization of this service (to be used as a singleton in the app). All other web calls are blocked as long as this one is not finished.
          */
-        blueskyAjaxClientConfig: BlueskyAjaxClientConfig;
+        blueskyAjaxClientConfig: BlueskyAjaxClientConfigurationDto;
         get<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         delete<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         post<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
@@ -106,6 +64,7 @@ declare namespace bluesky.core.services {
         buildUrlFromContext(urlInput: string): string;
     }
     class BlueskyHttpWrapper implements IBlueskyHttpWrapper {
+        private _;
         private $http;
         private $window;
         private $log;
@@ -116,8 +75,8 @@ declare namespace bluesky.core.services {
         private configInitializationURL;
         private selectedUserRole;
         private getConfigPromise;
-        blueskyAjaxClientConfig: BlueskyAjaxClientConfig;
-        constructor($http: ng.IHttpService, $window: ng.IWindowService, $log: ng.ILogService, $q: ng.IQService, $location: ng.ILocationService, Upload: ng.angularFileUpload.IUploadService, toaster: ngtoaster.IToasterService, configInitializationURL: string, selectedUserRole: UserRoleEntryDto);
+        blueskyAjaxClientConfig: BlueskyAjaxClientConfigurationDto;
+        constructor(_: UnderscoreStatic, $http: ng.IHttpService, $window: ng.IWindowService, $log: ng.ILogService, $q: ng.IQService, $location: ng.ILocationService, Upload: ng.angularFileUpload.IUploadService, toaster: ngtoaster.IToasterService, configInitializationURL: string, selectedUserRole: UserRoleEntryDto);
         get<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         delete<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         post<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
@@ -147,7 +106,7 @@ declare namespace bluesky.core.services {
          * @param urlInput : TODO MGA: document different kind of urls that this method can take as input (full, partial etc)
          * @return null if not able to compute url. Otherwise, url of the request either partial or full based on endpointType.
          */
-        buildUrlFromContext(urlInput: string, endpointType?: EndpointType): string;
+        buildUrlFromContext(urlInput: string, endpointType?: EndpointTypeEnum): string;
         /**
          * Utility method.
          * Main caller that all wrapper calls (get, delete, post, put) must use to share common behavior.
