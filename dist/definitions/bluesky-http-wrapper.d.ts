@@ -24,7 +24,7 @@ declare namespace bluesky.core.models.blueskyHttpClient {
 }
 
 declare namespace bluesky.core.services {
-    import UserRoleEntryDto = bluesky.core.models.userManagement.UserRoleEntryDto;
+    import UserRoleEntryDto = bluesky.core.models.userManagement.IUserRoleEntryDto;
     /**
      * Provider for the BlueskyHttpWrapper.
      * Enables per-consumer configuration of the http service to set custom configuration URL to fetch data from:
@@ -41,10 +41,10 @@ declare namespace bluesky.core.services {
 }
 
 declare namespace bluesky.core.services {
-    import UserRoleEntryDto = bluesky.core.models.userManagement.UserRoleEntryDto;
+    import UserRoleEntryDto = bluesky.core.models.userManagement.IUserRoleEntryDto;
     import BlueskyHttpRequestConfig = bluesky.core.models.blueskyHttpClient.IBlueskyHttpRequestConfig;
     import FileContent = bluesky.core.models.blueskyHttpClient.FileContent;
-    import BlueskyAjaxClientConfigurationDto = bluesky.core.models.clientConfig.BlueskyAjaxClientConfigurationDto;
+    import BlueskyAjaxClientConfigurationDto = bluesky.core.models.clientConfig.IBlueskyAjaxClientConfigurationDto;
     import EndpointTypeEnum = bluesky.core.models.clientConfig.EndpointTypeEnum;
     /**
      * TODO MGA comment

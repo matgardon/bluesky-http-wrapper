@@ -1,10 +1,10 @@
 ﻿namespace bluesky.core.services {
 
-    import UserRoleEntryDto = bluesky.core.models.userManagement.UserRoleEntryDto;
-    import UserSsoDto = bluesky.core.models.userManagement.UserSsoDto;
+    import UserRoleEntryDto = bluesky.core.models.userManagement.IUserRoleEntryDto;
+    import UserSsoDto = bluesky.core.models.userManagement.IUserSsoDto;
     import BlueskyHttpRequestConfig = bluesky.core.models.blueskyHttpClient.IBlueskyHttpRequestConfig;
     import FileContent = bluesky.core.models.blueskyHttpClient.FileContent;
-    import BlueskyAjaxClientConfigurationDto = bluesky.core.models.clientConfig.BlueskyAjaxClientConfigurationDto;
+    import BlueskyAjaxClientConfigurationDto = bluesky.core.models.clientConfig.IBlueskyAjaxClientConfigurationDto;
     import EndpointTypeEnum = bluesky.core.models.clientConfig.EndpointTypeEnum;
 
     enum HttpMethod { GET, POST, PUT, DELETE };
@@ -94,11 +94,11 @@
                 // success
                 (blueskyClientConfig) => {
                     //TODO MGA: handle case where client-side userRole was provided and not == srv-side user role !
-                    if (!blueskyClientConfig.currentUserRole) {
+                    if (!blueskyClientConfig.CurrentUserRole) {
                         //If not provided by domain from which code was loaded, then try to fetch default userRole from CAPI endpoint
                         return this.get<UserSsoDto>('user-sso?profile=', { endpointType: EndpointTypeEnum.CoreApi }).then<BlueskyAjaxClientConfigurationDto>(
                             (userSso) => {
-                                if (!userSso || !userSso.userRoleEntry) {
+                                if (!userSso || !userSso.UserRoleEntry) {
                                     var msg = 'Unable to retrieve CoreAPI default userSSO. Aborting httpWrapperService initialization.';
                                     this.$log.error(msg);
                                     return this.$q.reject(msg);
@@ -106,12 +106,12 @@
 
                                 //TODO MGA: make sure selectedUserRole is available in the list of userSSO roles, otherwise select default !
                                 //TODO MGA: how to inform back the DA that selectedUserRole was reset ? invert responsability & store userRole in localStorage from this service ?
-                                var userRoleToUse = selectedUserRole || userSso.userRoleEntry;
+                                var userRoleToUse = selectedUserRole || userSso.UserRoleEntry;
 
                                 //TODO MGA: this needs to be put in shared extension method / service
-                                this.blueskyAjaxClientConfig.currentUserRole = userRoleToUse.name + " " + userRoleToUse.role + " " + userRoleToUse.silo;
+                                this.blueskyAjaxClientConfig.CurrentUserRole = userRoleToUse.Name + " " + userRoleToUse.Role + " " + userRoleToUse.Silo;
 
-                                this.blueskyAjaxClientConfig.currentUser = userSso;
+                                this.blueskyAjaxClientConfig.CurrentUser = userSso;
 
                                 return blueskyClientConfig;
                             });
@@ -291,19 +291,19 @@
                 // For all other endpointTypes: compute URL as a combination of baseURL & suffix if present, as provided by server-configuration.
 
                 if (!this.blueskyAjaxClientConfig ||
-                    !this.blueskyAjaxClientConfig.endpointConfigurationDictionnary) {
+                    !this.blueskyAjaxClientConfig.EndpointConfigurationDictionnary) {
                     this.$log.error('Expected endpointConfigurationDictionnary provided but none found. Aborting.');
                     return null;
                 }
 
-                var endpointConfig = this.blueskyAjaxClientConfig.endpointConfigurationDictionnary[endpointType];
+                var endpointConfig = this.blueskyAjaxClientConfig.EndpointConfigurationDictionnary[endpointType];
 
                 if (!endpointConfig) {
                     this.$log.error(`EndpointType '${EndpointTypeEnum[endpointType]}' is not 'External' or 'CurrentDomain', expected corresponding endpointConfiguration provided in blueskyAjaxClientConfig.endpointConfigurationDictionnary but none found. Aborting.`);
                     return null;
                 }
 
-                baseUrl = endpointConfig.endpointBaseURL + (endpointConfig.endpointSuffix || '');
+                baseUrl = endpointConfig.EndpointBaseURL + (endpointConfig.EndpointSuffix || '');
             }
 
             //TODO MGA: how to handle OM apps external calls without session provided ? will result in a redirect and call may fail ?
@@ -425,7 +425,7 @@
             if (config.endpointType !== EndpointTypeEnum.CurrentDomain &&
                 config.endpointType !== EndpointTypeEnum.External &&
                 (!this.blueskyAjaxClientConfig ||
-                    !this.blueskyAjaxClientConfig.endpointConfigurationDictionnary[config.endpointType])) {
+                    !this.blueskyAjaxClientConfig.EndpointConfigurationDictionnary[config.endpointType])) {
                 this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - Ajax call intended without expected endpoint configuration loaded from the server for endpointType '${EndpointTypeEnum[config.endpointType]}'. Aborting.`);
                 return null;
             }
@@ -449,25 +449,25 @@
 
             if (config.useCurrentUserRole) {
                 // Reject call when missing mandatory information
-                if (!this.blueskyAjaxClientConfig.currentUserRole) {
+                if (!this.blueskyAjaxClientConfig.CurrentUserRole) {
                     this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - Ajax call intended without necessary userRole set in config. Aborting.`);
                     return null;
                 }
                 //TODO MGA: hard coded header to put in CONST
-                configFull.headers['OA-UserRole'] = this.blueskyAjaxClientConfig.currentUserRole;
+                configFull.headers['OA-UserRole'] = this.blueskyAjaxClientConfig.CurrentUserRole;
             }
 
-            var currentEndpointConfig = this.blueskyAjaxClientConfig && this.blueskyAjaxClientConfig.endpointConfigurationDictionnary[config.endpointType];
+            var currentEndpointConfig = this.blueskyAjaxClientConfig && this.blueskyAjaxClientConfig.EndpointConfigurationDictionnary[config.endpointType];
         
             // If auth token provided for target endpoint, add it in header
-            if (currentEndpointConfig.authToken) {
+            if (currentEndpointConfig.AuthToken) {
 
                 //TODO MGA: reject authToken for endpoints that are not 'safe' to share auth token with, such as External ones ? Or authorize this so that server can load an auth token for certain external endpoints ?
 
                 //TODO MGA: handle token validity endDate: renew auth before the call ! What's the best moment to do it ?
 
                 //TODO MGA: hard coded header to put in CONST
-                configFull.headers['Authorization'] = 'Bearer ' + currentEndpointConfig.authToken;
+                configFull.headers['Authorization'] = 'Bearer ' + currentEndpointConfig.AuthToken;
             }
 
             //TODO MGA: OE specific code, to remove, or at least put in as config param

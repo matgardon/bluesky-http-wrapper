@@ -35,6 +35,7 @@ web.*.config
 *.sap
 *.[Rr]e[Ss]harper
 *.DotSettings.user
+*.DotSettings
 .ntvs_analysis.dat
 .ntvs_analysis.dat.tmp
 Properties/AssemblyInfo.cs
