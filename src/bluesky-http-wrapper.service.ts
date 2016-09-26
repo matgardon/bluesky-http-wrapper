@@ -71,17 +71,19 @@
             }
 
             //TODO MGA: custom config for headers hard coded, to mutualize with const
-            this.getConfigPromise = this.$http.get<BlueskyAjaxClientConfigurationDto>(configurationEndpointUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' }})
+            this.getConfigPromise = this.$http.get<BlueskyAjaxClientConfigurationDto>(configurationEndpointUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then<BlueskyAjaxClientConfigurationDto>(
                 // success
                 (clientConfigPromise) => {
                     //TODO MGA: reject status not in 2XX ?
                     if (!clientConfigPromise.data) {
-                        var msg = `Unable to retrieve http config data from '${configInitializationURL}'. Aborting blueskyHttpWrapperService initialization.`;
+                        var msg = `[BlueskyHttpWrapper][Initialization] - Unable to retrieve http config data from '${configInitializationURL}'. Aborting blueskyHttpWrapperService initialization.`;
                         this.$log.error(msg);
                         //TODO MGA: toaster ?
                         return this.$q.reject(msg);
                     }
+
+                    this.$log.info('[BlueskyHttpWrapper][Initialization] - Successfully loaded clientConfig from srv:', clientConfigPromise.data);
 
                     this.blueskyAjaxClientConfig = clientConfigPromise.data;
                     return clientConfigPromise.data;
@@ -98,6 +100,9 @@
                     //TODO MGA: handle case where client-side userRole was provided and not == srv-side user role !
                     if (!blueskyClientConfig.CurrentUserRole) {
                         //If not provided by domain from which code was loaded, then try to fetch default userRole from CAPI endpoint
+
+                        this.$log.info('[BlueskyHttpWrapper][Initialization] - No default UserRole provided by current domain, trying to fetch it from CAPI.');
+
                         return this.get<UserSsoDto>('user-sso?profile=', { endpointType: EndpointTypeEnum.CoreApi }).then<BlueskyAjaxClientConfigurationDto>(
                             (userSso) => {
                                 if (!userSso || !userSso.UserRoleEntry) {
@@ -105,6 +110,11 @@
                                     this.$log.error(msg);
                                     return this.$q.reject(msg);
                                 }
+
+                                this.$log.info(`[BlueskyHttpWrapper][Initialization] - Default userSSO loaded from CAPI ${userSso.UserDisplayName}.`, userSso);
+
+                                if (selectedUserRole)
+                                    this.$log.info(`[BlueskyHttpWrapper][Initialization] - Client app provided saved UserRole. Assigning it.`, this.selectedUserRole);
 
                                 //TODO MGA: make sure selectedUserRole is available in the list of userSSO roles, otherwise select default !
                                 //TODO MGA: how to inform back the DA that selectedUserRole was reset ? invert responsability & store userRole in localStorage from this service ?
@@ -426,7 +436,7 @@
                 default:
                     this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Unsupported endpointType provided: '${EndpointTypeEnum[config.endpointType]}'. Aborting.`);
                     return null;
-                    //break;
+                //break;
             }
 
             //Reject ajax calls intended to external endpoints without necessary configuration loaded from the server.
@@ -463,7 +473,7 @@
                 //TODO MGA: hard coded header to put in CONST
                 configFull.headers['OA-UserRole'] = this.blueskyAjaxClientConfig.CurrentUserRole;
             }
-        
+
             // If auth token provided for target endpoint, add it in header
             if (currentEndpointConfig.AuthToken) {
 
