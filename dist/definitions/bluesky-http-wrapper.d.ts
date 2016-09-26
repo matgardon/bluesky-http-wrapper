@@ -55,6 +55,7 @@ declare namespace bluesky.core.services {
          * This configuration data is loaded upon initialization of this service (to be used as a singleton in the app). All other web calls are blocked as long as this one is not finished.
          */
         blueskyAjaxClientConfig: BlueskyAjaxClientConfigurationDto;
+        getAjaxConfigFromServerPromise: ng.IPromise<any>;
         get<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         delete<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         post<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
@@ -74,7 +75,7 @@ declare namespace bluesky.core.services {
         private toaster;
         private configInitializationURL;
         private selectedUserRole;
-        private getConfigPromise;
+        getAjaxConfigFromServerPromise: ng.IPromise<any>;
         blueskyAjaxClientConfig: BlueskyAjaxClientConfigurationDto;
         constructor(_: UnderscoreStatic, $http: ng.IHttpService, $window: ng.IWindowService, $log: ng.ILogService, $q: ng.IQService, $location: ng.ILocationService, Upload: ng.angularFileUpload.IUploadService, toaster: ngtoaster.IToasterService, configInitializationURL: string, selectedUserRole: UserRoleEntryDto);
         get<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;

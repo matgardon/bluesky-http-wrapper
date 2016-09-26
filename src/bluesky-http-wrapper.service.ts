@@ -20,6 +20,8 @@
          */
         blueskyAjaxClientConfig: BlueskyAjaxClientConfigurationDto;
 
+        getAjaxConfigFromServerPromise: ng.IPromise<any>;
+
         get<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
 
         delete<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
@@ -39,7 +41,7 @@
 
         //#region properties
 
-        private getConfigPromise: ng.IPromise<any>;
+        public getAjaxConfigFromServerPromise: ng.IPromise<any>;
 
         public blueskyAjaxClientConfig: BlueskyAjaxClientConfigurationDto;
 
@@ -71,7 +73,7 @@
             }
 
             //TODO MGA: custom config for headers hard coded, to mutualize with const
-            this.getConfigPromise = this.$http.get<BlueskyAjaxClientConfigurationDto>(configurationEndpointUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            this.getAjaxConfigFromServerPromise = this.$http.get<BlueskyAjaxClientConfigurationDto>(configurationEndpointUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then<BlueskyAjaxClientConfigurationDto>(
                 // success
                 (clientConfigPromise) => {
@@ -191,7 +193,7 @@
                 config.data.fileFormDataName = 'file'; // file formData name ('Content-Disposition'), server side request form name
 
                 //TODO MGA : do not block if not call to internal API ? (initCall)
-                return this.getConfigPromise.then(() => {
+                return this.getAjaxConfigFromServerPromise.then(() => {
 
                     //TODO MGA : behavior duplication with this.ajax, not DRY, to improve
                     var requestConfig = this.configureHttpCall(HttpMethod.POST, url, config);
@@ -217,7 +219,7 @@
          * @param config
          */
         getFile(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<FileContent> {
-            return this.getConfigPromise.then(() => {
+            return this.getAjaxConfigFromServerPromise.then(() => {
 
                 var angularHttpConfig = this.configureHttpCall(HttpMethod.GET, url, config);
 
@@ -350,7 +352,7 @@
         private ajax<T>(method: HttpMethod, url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
             //TODO MGA : make sure getConfig resolve automatically without overhead once first call sucessfull.
             //TODO MGA : do not block if not call to internal API (initCall)
-            return this.getConfigPromise.then(() => {
+            return this.getAjaxConfigFromServerPromise.then(() => {
                 var angularHttpConfig = this.configureHttpCall(method, url, config);
 
                 if (angularHttpConfig) // if no config returned, configuration failed, do not start ajax request
