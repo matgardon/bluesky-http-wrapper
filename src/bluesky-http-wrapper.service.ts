@@ -70,7 +70,8 @@
                 return;
             }
 
-            this.getConfigPromise = this.$http.get<BlueskyAjaxClientConfigurationDto>(configurationEndpointUrl)
+            //TODO MGA: custom config for headers hard coded, to mutualize with const
+            this.getConfigPromise = this.$http.get<BlueskyAjaxClientConfigurationDto>(configurationEndpointUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' }})
                 .then<BlueskyAjaxClientConfigurationDto>(
                 // success
                 (clientConfigPromise) => {
@@ -87,7 +88,8 @@
                 },
                 // error
                 (error) => {
-                    this.$log.error('Unable to retrieve API config. Aborting blueskyHttpWrapperService initialization.');
+                    this.$log.error('Unable to retrieve API config. Aborting blueskyHttpWrapperService initialization. Srv msg: ', error);
+                    //TODO MGA: show toaster ? based on provider config flag ?
                     return this.$q.reject(error);
                 })
                 .then<BlueskyAjaxClientConfigurationDto>(
@@ -296,7 +298,8 @@
                     return null;
                 }
 
-                var endpointConfig = this.blueskyAjaxClientConfig.EndpointConfigurationDictionnary[endpointType];
+                // TODO MGA HACKY: search by string representation of endpoint type in dict due to serialization limits
+                var endpointConfig = this.blueskyAjaxClientConfig.EndpointConfigurationDictionnary[EndpointTypeEnum[endpointType]];
 
                 if (!endpointConfig) {
                     this.$log.error(`EndpointType '${EndpointTypeEnum[endpointType]}' is not 'External' or 'CurrentDomain', expected corresponding endpointConfiguration provided in blueskyAjaxClientConfig.endpointConfigurationDictionnary but none found. Aborting.`);
@@ -371,6 +374,10 @@
 
             config.endpointType = config.endpointType || EndpointTypeEnum.CurrentDomain; // default value: if not specified, endpoint to use is supposed to be the origin.
 
+            // search by string representation of endpoint type
+            // TODO MGA: make sure EndpointTypeEnum[invalid value] doesn't return default valid enum value ??? otherwise, dangerous !
+            var currentEndpointConfig = this.blueskyAjaxClientConfig && this.blueskyAjaxClientConfig.EndpointConfigurationDictionnary[EndpointTypeEnum[config.endpointType]];
+
             //TODO MGA: hard cast is not safe, we may forget to set url & method parameters. TOFIX.
             // automatically get all non-filtered parameters & keep them for this new object.
             var configFull = <ng.IRequestConfig>config;
@@ -418,14 +425,14 @@
                     break;
                 default:
                     this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Unsupported endpointType provided: '${EndpointTypeEnum[config.endpointType]}'. Aborting.`);
-                    break;
+                    return null;
+                    //break;
             }
 
             //Reject ajax calls intended to external endpoints without necessary configuration loaded from the server.
             if (config.endpointType !== EndpointTypeEnum.CurrentDomain &&
                 config.endpointType !== EndpointTypeEnum.External &&
-                (!this.blueskyAjaxClientConfig ||
-                    !this.blueskyAjaxClientConfig.EndpointConfigurationDictionnary[config.endpointType])) {
+                !currentEndpointConfig) {
                 this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - Ajax call intended without expected endpoint configuration loaded from the server for endpointType '${EndpointTypeEnum[config.endpointType]}'. Aborting.`);
                 return null;
             }
@@ -456,8 +463,6 @@
                 //TODO MGA: hard coded header to put in CONST
                 configFull.headers['OA-UserRole'] = this.blueskyAjaxClientConfig.CurrentUserRole;
             }
-
-            var currentEndpointConfig = this.blueskyAjaxClientConfig && this.blueskyAjaxClientConfig.EndpointConfigurationDictionnary[config.endpointType];
         
             // If auth token provided for target endpoint, add it in header
             if (currentEndpointConfig.AuthToken) {

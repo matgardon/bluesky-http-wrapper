@@ -13,7 +13,7 @@ var gulp = require('gulp'),
 
 var tsProject = ts.createProject('tsconfig.json');
 
-var tsSrcArray = ['src/**/*.model.ts', 'src/**/*.ts'], //import models first so that they are generated before usage in concatenated file
+var tsSrcArray = ['src/**/*.model.ts', 'src/**/*.ts'], //TODO MGA HACK: import models first so that they are generated before usage in concatenated file
     tsExternalDefinitions = 'typings/**/*.d.ts';
 
 gulp.task('clean', function () {
