@@ -118,8 +118,10 @@
 
                         //TODO MGA: factorize with configureHttpCall() !! this is a special case where we cannot use ajax() DRY method ...
                         var customConfig = {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Authorization': 'Bearer ' + coreApiConfig.AuthToken
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Authorization': 'Bearer ' + coreApiConfig.AuthToken
+                            }
                         };
 
                         var getUserSsoFullUrl = this.buildUrlFromContext('user-sso?profile=', EndpointTypeEnum.CoreApi);
