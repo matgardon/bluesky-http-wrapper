@@ -6,6 +6,7 @@
     import FileContent = bluesky.core.models.blueskyHttpClient.FileContent;
     import BlueskyAjaxClientConfigurationDto = bluesky.core.models.clientConfig.IBlueskyAjaxClientConfigurationDto;
     import EndpointTypeEnum = bluesky.core.models.clientConfig.EndpointTypeEnum;
+    import AjaxClientEndpointConfigurationDto = bluesky.core.models.clientConfig.IAjaxClientEndpointConfigurationDto;
 
     enum HttpMethod { GET, POST, PUT, DELETE };
 
@@ -20,7 +21,10 @@
          */
         blueskyAjaxClientConfig: BlueskyAjaxClientConfigurationDto;
 
-        getAjaxConfigFromServerPromise: ng.IPromise<any>;
+        /**
+         * Promise resolved only once the ajaxConfig has been correctly fetched from server & the current user & user role has been loaded (if needed) & set.
+         */
+        getAjaxConfigFromServerPromise: ng.IPromise<BlueskyAjaxClientConfigurationDto>;
 
         get<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
 
@@ -41,7 +45,7 @@
 
         //#region properties
 
-        public getAjaxConfigFromServerPromise: ng.IPromise<any>;
+        public getAjaxConfigFromServerPromise: ng.IPromise<BlueskyAjaxClientConfigurationDto>;
 
         public blueskyAjaxClientConfig: BlueskyAjaxClientConfigurationDto;
 
@@ -62,7 +66,6 @@
             private configInitializationURL: string,
             private selectedUserRole: UserRoleEntryDto
         ) {
-
             // 1 - fetch the configuration data necessary for this service to run from the provided endpoint
 
             var configurationEndpointUrl = this.buildUrlFromContext(configInitializationURL, EndpointTypeEnum.CurrentDomain);
@@ -92,11 +95,10 @@
                 },
                 // error
                 (error) => {
-                    this.$log.error('Unable to retrieve API config. Aborting blueskyHttpWrapperService initialization. Srv msg: ', error);
+                    this.$log.error('[BlueskyHttpWrapper][Initialization] - Unable to retrieve API config. Aborting blueskyHttpWrapperService initialization. Srv msg: ', error);
                     //TODO MGA: show toaster ? based on provider config flag ?
                     return this.$q.reject(error);
-                })
-                .then<BlueskyAjaxClientConfigurationDto>(
+                }).then<BlueskyAjaxClientConfigurationDto>(
                 // success
                 (blueskyClientConfig) => {
                     //TODO MGA: handle case where client-side userRole was provided and not == srv-side user role !
@@ -105,13 +107,31 @@
 
                         this.$log.info('[BlueskyHttpWrapper][Initialization] - No default UserRole provided by current domain, trying to fetch it from CAPI.');
 
-                        return this.get<UserSsoDto>('user-sso?profile=', { endpointType: EndpointTypeEnum.CoreApi }).then<BlueskyAjaxClientConfigurationDto>(
-                            (userSso) => {
-                                if (!userSso || !userSso.UserRoleEntry) {
-                                    var msg = 'Unable to retrieve CoreAPI default userSSO. Aborting httpWrapperService initialization.';
-                                    this.$log.error(msg);
-                                    return this.$q.reject(msg);
+                        //TODO MGA: factorize with configureHttpCall() !! this is a special case where we cannot use ajax() DRY method ...
+
+                        var coreApiConfig: AjaxClientEndpointConfigurationDto = blueskyClientConfig.EndpointConfigurationDictionnary[EndpointTypeEnum[EndpointTypeEnum.CoreApi]];
+
+                        if (!coreApiConfig) {
+                            var msg = '[BlueskyHttpWrapper][Initialization] - Failed to retrieve necessary CoreApi endpoint config to fetch userSSO. Aborting.';
+                            this.$log.error(msg);
+                            return this.$q.reject(msg);
+                        }
+                        var customConfig = {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Authorization': 'Bearer ' + coreApiConfig.AuthToken
+                        };
+
+                        var getUserSsoFullUrl = coreApiConfig.EndpointBaseURL + (coreApiConfig.EndpointSuffix || '') + 'user-sso?profile=';
+
+                        return this.$http.get<UserSsoDto>(getUserSsoFullUrl, customConfig).then<BlueskyAjaxClientConfigurationDto>(
+                            (userSsoPromise) => {
+                                if (!userSsoPromise || !userSsoPromise.data || !userSsoPromise.data.UserRoleEntry) {
+                                    var coreApiConfigMissingMsg = '[BlueskyHttpWrapper][Initialization] - Unable to retrieve CoreAPI default userSSO. Aborting httpWrapperService initialization.';
+                                    this.$log.error(coreApiConfigMissingMsg);
+                                    return this.$q.reject(coreApiConfigMissingMsg);
                                 }
+
+                                var userSso = userSsoPromise.data;
 
                                 this.$log.info(`[BlueskyHttpWrapper][Initialization] - Default userSSO loaded from CAPI ${userSso.UserDisplayName}.`, userSso);
 
