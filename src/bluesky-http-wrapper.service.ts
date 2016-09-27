@@ -107,7 +107,6 @@
 
                         this.$log.info('[BlueskyHttpWrapper][Initialization] - No default UserRole provided by current domain, trying to fetch it from CAPI.');
 
-                        //TODO MGA: factorize with configureHttpCall() !! this is a special case where we cannot use ajax() DRY method ...
 
                         var coreApiConfig: AjaxClientEndpointConfigurationDto = blueskyClientConfig.EndpointConfigurationDictionnary[EndpointTypeEnum[EndpointTypeEnum.CoreApi]];
 
@@ -116,12 +115,14 @@
                             this.$log.error(msg);
                             return this.$q.reject(msg);
                         }
+
+                        //TODO MGA: factorize with configureHttpCall() !! this is a special case where we cannot use ajax() DRY method ...
                         var customConfig = {
                             'X-Requested-With': 'XMLHttpRequest',
                             'Authorization': 'Bearer ' + coreApiConfig.AuthToken
                         };
 
-                        var getUserSsoFullUrl = coreApiConfig.EndpointBaseURL + (coreApiConfig.EndpointSuffix || '') + 'user-sso?profile=';
+                        var getUserSsoFullUrl = this.buildUrlFromContext('user-sso?profile=', EndpointTypeEnum.CoreApi);
 
                         return this.$http.get<UserSsoDto>(getUserSsoFullUrl, customConfig).then<BlueskyAjaxClientConfigurationDto>(
                             (userSsoPromise) => {
@@ -465,7 +466,7 @@
             if (config.endpointType !== EndpointTypeEnum.CurrentDomain &&
                 config.endpointType !== EndpointTypeEnum.External &&
                 !currentEndpointConfig) {
-                this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - Ajax call intended without expected endpoint configuration loaded from the server for endpointType '${EndpointTypeEnum[config.endpointType]}'. Aborting.`);
+                this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Ajax call intended without expected endpoint configuration loaded from the server for endpointType '${EndpointTypeEnum[config.endpointType]}'. Aborting.`);
                 return null;
             }
 
@@ -489,7 +490,7 @@
             if (config.useCurrentUserRole) {
                 // Reject call when missing mandatory information
                 if (!this.blueskyAjaxClientConfig.CurrentUserRole) {
-                    this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - Ajax call intended without necessary userRole set in config. Aborting.`);
+                    this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Ajax call intended without necessary userRole set in config. Aborting.`);
                     return null;
                 }
                 //TODO MGA: hard coded header to put in CONST
