@@ -136,7 +136,7 @@
 
                                 var userSso = userSsoPromise.data;
 
-                                this.$log.info(`[BlueskyHttpWrapper][Initialization] - Default userSSO loaded from CAPI ${userSso.UserDisplayName}.`, userSso);
+                                this.$log.info(`[BlueskyHttpWrapper][Initialization] - Default userSSO loaded from CAPI: '${userSso.UserDisplayName}'.`, userSso);
 
                                 if (selectedUserRole)
                                     this.$log.info(`[BlueskyHttpWrapper][Initialization] - Client app provided saved UserRole. Assigning it.`, this.selectedUserRole);
