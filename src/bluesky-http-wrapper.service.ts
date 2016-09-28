@@ -318,6 +318,8 @@
 
             } else if (endpointType === EndpointTypeEnum.CurrentDomain) {
 
+                //TODO MGA: not loading the endpointConfig for current domain means we can't access endpointAPIsuffix if it exists, should we load the endpointConfig for this case too ?? & handle it the same way as other endpoints ?
+
                 // Regex trying to determine if the input fragment contains a / between two character suites => controller given as input, otherwise, action on same controller expected
                 var controllerIsPresentRegex = /\w+\/\w+/;
 
@@ -453,16 +455,21 @@
                 case EndpointTypeEnum.CurrentDomain:
                     // for ajax calls, make sure the XmlHttpRequest header is present (ASP.NET apps).
                     config.disableXmlHttpRequestHeader = false;
+                    // user role is usefull even for current domain so that srv can know the context.
+                    config.useCurrentUserRole = true;
                     break;
                 case EndpointTypeEnum.External:
-                    //TODO MGA to confirm
-                    config.disableXmlHttpRequestHeader = true; // do not add XmlHttpRequest if external Url by default: might create conflicts on certain servers.
+                    //TODO MGA to confirm: we may want to call external urls via ajax, so how to be sure of default value ?
+                    config.disableXmlHttpRequestHeader = true; // do not add XmlHttpRequest if external Url by default: might create conflicts on certain servers that don't support this header outside of ASP world.
                     break;
                 default:
                     this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Unsupported endpointType provided: '${EndpointTypeEnum[config.endpointType]}'. Aborting.`);
                     return null;
                 //break;
             }
+
+            //TODO MGA: should we authorize no valid endpoint configuration loaded for current domain ? AuthToken still usefull or not ? BaseURL still usefull or not ? api suffix ? 
+            // For external URLs, obviously endpoint config is not mandatory, but it could be provided if needed: how to handle this case?
 
             //Reject ajax calls intended to external endpoints without necessary configuration loaded from the server.
             if (config.endpointType !== EndpointTypeEnum.CurrentDomain &&
@@ -500,7 +507,7 @@
             }
 
             // If auth token provided for target endpoint, add it in header
-            if (currentEndpointConfig.AuthToken) {
+            if (currentEndpointConfig && currentEndpointConfig.AuthToken) { // protect against cases where endpointType is current domain or external: endpointConfig null/undefined.
 
                 //TODO MGA: reject authToken for endpoints that are not 'safe' to share auth token with, such as External ones ? Or authorize this so that server can load an auth token for certain external endpoints ?
 
