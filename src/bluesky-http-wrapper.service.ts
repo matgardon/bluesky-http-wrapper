@@ -8,7 +8,7 @@
     import EndpointTypeEnum = bluesky.core.models.clientConfig.EndpointTypeEnum;
     import AjaxClientEndpointConfigurationDto = bluesky.core.models.clientConfig.IAjaxClientEndpointConfigurationDto;
 
-    enum HttpMethod { GET, POST, PUT, DELETE };
+    export enum HttpMethod { GET, POST, PUT, DELETE };
 
     /**
      * TODO MGA comment

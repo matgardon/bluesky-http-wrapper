@@ -46,6 +46,12 @@ declare namespace bluesky.core.services {
     import FileContent = bluesky.core.models.blueskyHttpClient.FileContent;
     import BlueskyAjaxClientConfigurationDto = bluesky.core.models.clientConfig.IBlueskyAjaxClientConfigurationDto;
     import EndpointTypeEnum = bluesky.core.models.clientConfig.EndpointTypeEnum;
+    enum HttpMethod {
+        GET = 0,
+        POST = 1,
+        PUT = 2,
+        DELETE = 3,
+    }
     /**
      * TODO MGA comment
      */
