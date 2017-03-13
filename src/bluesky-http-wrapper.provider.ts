@@ -1,5 +1,5 @@
-﻿namespace bluesky.core.services {
-    import UserRoleEntryDto = bluesky.core.models.userManagement.IUserRoleEntryDto;
+﻿namespace bluesky.core.service {
+    import UserRoleEntryDto = bluesky.core.model.userManagement.IUserRoleEntryDto;
 
     /**
      * Provider for the BlueskyHttpWrapper.
@@ -37,9 +37,9 @@
             $q: ng.IQService,
             $location: ng.ILocationService,
             Upload: ng.angularFileUpload.IUploadService,
-            toaster: ngtoaster.IToasterService): services.IBlueskyHttpWrapper => {
+            toaster: ngtoaster.IToasterService): IBlueskyHttpWrapper => {
 
-            return new services.BlueskyHttpWrapper(_, $http, $window, $log, $q, $location, Upload, toaster, this.getClientConfigInitializationUrl, this.selectedUserRole);
+            return new BlueskyHttpWrapper(_, $http, $window, $log, $q, $location, Upload, toaster, this.getClientConfigInitializationUrl, this.selectedUserRole);
         }
     }
 

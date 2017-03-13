@@ -1,6 +1,6 @@
-﻿namespace bluesky.core.models.blueskyHttpClient {
+﻿namespace bluesky.core.model.blueskyHttpClient {
 
-    import EndpointTypeEnum = core.models.clientConfig.EndpointTypeEnum;
+    import EndpointTypeEnum = core.model.clientConfig.EndpointTypeEnum;
 
     /**
      * TODO MGA Doc

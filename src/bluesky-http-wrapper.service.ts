@@ -1,12 +1,12 @@
-﻿namespace bluesky.core.services {
+﻿namespace bluesky.core.service {
 
-    import UserRoleEntryDto = bluesky.core.models.userManagement.IUserRoleEntryDto;
-    import UserSsoDto = bluesky.core.models.userManagement.IUserSsoDto;
-    import BlueskyHttpRequestConfig = bluesky.core.models.blueskyHttpClient.IBlueskyHttpRequestConfig;
-    import FileContent = bluesky.core.models.blueskyHttpClient.FileContent;
-    import BlueskyAjaxClientConfigurationDto = bluesky.core.models.clientConfig.IBlueskyAjaxClientConfigurationDto;
-    import EndpointTypeEnum = bluesky.core.models.clientConfig.EndpointTypeEnum;
-    import AjaxClientEndpointConfigurationDto = bluesky.core.models.clientConfig.IAjaxClientEndpointConfigurationDto;
+    import UserRoleEntryDto = bluesky.core.model.userManagement.IUserRoleEntryDto;
+    import UserSsoDto = bluesky.core.model.userManagement.IUserSsoDto;
+    import BlueskyHttpRequestConfig = bluesky.core.model.blueskyHttpClient.IBlueskyHttpRequestConfig;
+    import FileContent = bluesky.core.model.blueskyHttpClient.FileContent;
+    import BlueskyAjaxClientConfigurationDto = bluesky.core.model.clientConfig.IBlueskyAjaxClientConfigurationDto;
+    import EndpointTypeEnum = bluesky.core.model.clientConfig.EndpointTypeEnum;
+    import AjaxClientEndpointConfigurationDto = bluesky.core.model.clientConfig.IAjaxClientEndpointConfigurationDto;
 
     export enum HttpMethod { GET, POST, PUT, DELETE };
 
@@ -383,6 +383,7 @@
                 if (angularHttpConfig) // if no config returned, configuration failed, do not start ajax request
                     return this.$http<T>(angularHttpConfig)
                         .then<T>(this.onSuccess<T>(config), this.onError<T>(config))
+                        //.catch TODO MGA handle catch clause if exception in success or error callback !
                         .finally(this.finally);
             });
         }

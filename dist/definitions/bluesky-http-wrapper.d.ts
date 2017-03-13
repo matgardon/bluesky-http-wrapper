@@ -1,5 +1,5 @@
-declare namespace bluesky.core.models.blueskyHttpClient {
-    import EndpointTypeEnum = core.models.clientConfig.EndpointTypeEnum;
+declare namespace bluesky.core.model.blueskyHttpClient {
+    import EndpointTypeEnum = core.model.clientConfig.EndpointTypeEnum;
     /**
      * TODO MGA Doc
      */
@@ -14,7 +14,7 @@ declare namespace bluesky.core.models.blueskyHttpClient {
     }
 }
 
-declare namespace bluesky.core.models.blueskyHttpClient {
+declare namespace bluesky.core.model.blueskyHttpClient {
     interface FileContent {
         name: string;
         size: number;
@@ -23,8 +23,8 @@ declare namespace bluesky.core.models.blueskyHttpClient {
     }
 }
 
-declare namespace bluesky.core.services {
-    import UserRoleEntryDto = bluesky.core.models.userManagement.IUserRoleEntryDto;
+declare namespace bluesky.core.service {
+    import UserRoleEntryDto = bluesky.core.model.userManagement.IUserRoleEntryDto;
     /**
      * Provider for the BlueskyHttpWrapper.
      * Enables per-consumer configuration of the http service to set custom configuration URL to fetch data from:
@@ -40,12 +40,12 @@ declare namespace bluesky.core.services {
     }
 }
 
-declare namespace bluesky.core.services {
-    import UserRoleEntryDto = bluesky.core.models.userManagement.IUserRoleEntryDto;
-    import BlueskyHttpRequestConfig = bluesky.core.models.blueskyHttpClient.IBlueskyHttpRequestConfig;
-    import FileContent = bluesky.core.models.blueskyHttpClient.FileContent;
-    import BlueskyAjaxClientConfigurationDto = bluesky.core.models.clientConfig.IBlueskyAjaxClientConfigurationDto;
-    import EndpointTypeEnum = bluesky.core.models.clientConfig.EndpointTypeEnum;
+declare namespace bluesky.core.service {
+    import UserRoleEntryDto = bluesky.core.model.userManagement.IUserRoleEntryDto;
+    import BlueskyHttpRequestConfig = bluesky.core.model.blueskyHttpClient.IBlueskyHttpRequestConfig;
+    import FileContent = bluesky.core.model.blueskyHttpClient.FileContent;
+    import BlueskyAjaxClientConfigurationDto = bluesky.core.model.clientConfig.IBlueskyAjaxClientConfigurationDto;
+    import EndpointTypeEnum = bluesky.core.model.clientConfig.EndpointTypeEnum;
     enum HttpMethod {
         GET = 0,
         POST = 1,
