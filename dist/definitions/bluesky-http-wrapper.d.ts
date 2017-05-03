@@ -50,7 +50,8 @@ declare namespace bluesky.core.service {
         GET = 0,
         POST = 1,
         PUT = 2,
-        DELETE = 3,
+        PATCH = 3,
+        DELETE = 4,
     }
     /**
      * TODO MGA comment
@@ -69,6 +70,7 @@ declare namespace bluesky.core.service {
         delete<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         post<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         put<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
+        patch<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         upload<T>(url: string, file: File, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         getFile(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<FileContent>;
         buildUrlFromContext(urlInput: string): string;
@@ -91,6 +93,7 @@ declare namespace bluesky.core.service {
         delete<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         post<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         put<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
+        patch<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         /**
          * TODO MGA: not DRY with ajax method, how to keep it in sync ?
          * @param url

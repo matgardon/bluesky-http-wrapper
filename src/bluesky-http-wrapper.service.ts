@@ -8,7 +8,7 @@
     import EndpointTypeEnum = bluesky.core.model.clientConfig.EndpointTypeEnum;
     import AjaxClientEndpointConfigurationDto = bluesky.core.model.clientConfig.IAjaxClientEndpointConfigurationDto;
 
-    export enum HttpMethod { GET, POST, PUT, DELETE };
+    export enum HttpMethod { GET, POST, PUT, PATCH, DELETE };
 
     /**
      * TODO MGA comment
@@ -33,6 +33,8 @@
         post<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
 
         put<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
+        
+        patch<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
 
         upload<T>(url: string, file: File, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
 
@@ -185,6 +187,12 @@
             config = config || {};
             config.data = data || config.data;
             return this.ajax<T>(HttpMethod.PUT, url, config);
+        }
+
+        patch<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
+            config = config || {};
+            config.data = data || config.data;
+            return this.ajax<T>(HttpMethod.PATCH, url, config);
         }
 
         /**
@@ -464,7 +472,7 @@
                     config.disableXmlHttpRequestHeader = true; // do not add XmlHttpRequest if external Url by default: might create conflicts on certain servers that don't support this header outside of ASP world.
                     break;
                 default:
-                    this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Unsupported endpointType provided: '${EndpointTypeEnum[config.endpointType]}'. Aborting.`);
+                    this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Unsupported endpointType provided: '${EndpointTypeEnum[config.endpointType || EndpointTypeEnum.CurrentDomain]}'. Aborting.`);
                     return null;
                 //break;
             }
