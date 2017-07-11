@@ -136,6 +136,12 @@
                                     return this.$q.reject(coreApiConfigMissingMsg);
                                 }
 
+                                if (!userSsoPromise.data.UserDisplayName || !userSsoPromise.data.UserIdentifier){
+                                    let noUserIdMsg = '[BlueskyHttpWrapper][Initialization] - CoreAPI userSSO is not fully populated: unable to retrieve UserIdentifier or DisplayName. Aborting httpWrapperService initialization.';
+                                    this.$log.error(noUserIdMsg);
+                                    return this.$q.reject(noUserIdMsg);
+                                }
+
                                 var userSso = userSsoPromise.data;
 
                                 this.$log.info(`[BlueskyHttpWrapper][Initialization] - Default userSSO loaded from CAPI: '${userSso.UserDisplayName}'.`, userSso);
