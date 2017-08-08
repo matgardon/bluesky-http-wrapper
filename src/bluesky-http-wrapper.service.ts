@@ -574,7 +574,7 @@
                     this.$log.error(`[HTTP no-response] Unexpected $http error, no response promise returned.`);
 
                     if (!originalConfig.disableToasterNotifications)
-                        this.toaster.error('Unexpected behavior', 'Please contact your local support team.');
+                        this.toaster.error('unexpected behavior', 'Please contact your local support team.');
 
                     return null;
                     //TODO MGA: handle multi-type return in case of rejection or do something else ? this method is currently used synchronously without promise waiting.
@@ -642,14 +642,14 @@
 
                         //TODO MGA: handle more response codes gracefully.
                         if (httpPromise.status === 404) {
-                            this.toaster.warning('Not Found', message);
+                            this.toaster.warning('not found', message);
                         } else {
-                            this.toaster.error('Server response error', message + '\n Status: ' + httpPromise.status);
+                            this.toaster.error('server response error', `${message}. (status: ${httpPromise.status})`);
                         }
 
 
                     } else {
-                        this.toaster.error('Internal server error', 'Status: ' + httpPromise.status);
+                        this.toaster.error('internal server error', 'status: ' + httpPromise.status);
                     }
                 }
 
