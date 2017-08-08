@@ -127,15 +127,16 @@ declare namespace bluesky.core.service {
          */
         private ajax<T>(method, url, config?);
         /**
-        * Prepares a {@link ng#$http#config config} object for $http call.
-        * The operations include setting default values when not provided, and setting http headers if needed for :
-        *  - Ajax calls
-        *  - Authorization token
-        *  - Current UserRole.
-        * @param options
-        * @returns {ng.$http.config} the configuration object ready to be injected into a $http call.
-        */
-        private configureHttpCall;
+         * Prepares bluesky-specific configuration based on provided inputs.
+         * The operations include setting default values when not provided, and setting http headers if needed for :
+         *  - Ajax calls
+         *  - Authorization token
+         *  - Current UserRole.
+         * @param config user input config if provided.
+         * @returns the configuration object with automatic rules applied.
+         */
+        private setupBlueskyConfig;
+        private extractAngularConfigFromBlueskyConfig;
         /**
          * Success handler.
          * Captures the input parameters at the moment of its declaration & return the real handler to be called upon promise completion.

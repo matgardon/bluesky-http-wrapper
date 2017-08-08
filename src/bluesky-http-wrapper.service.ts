@@ -33,7 +33,7 @@
         post<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
 
         put<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
-        
+
         patch<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
 
         upload<T>(url: string, file: File, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
@@ -136,7 +136,7 @@
                                     return this.$q.reject(coreApiConfigMissingMsg);
                                 }
 
-                                if (!userSsoPromise.data.UserDisplayName || !userSsoPromise.data.UserIdentifier){
+                                if (!userSsoPromise.data.UserDisplayName || !userSsoPromise.data.UserIdentifier) {
                                     let noUserIdMsg = '[BlueskyHttpWrapper][Initialization] - CoreAPI userSSO is not fully populated: unable to retrieve UserIdentifier or DisplayName. Aborting httpWrapperService initialization.';
                                     this.$log.error(noUserIdMsg);
                                     return this.$q.reject(noUserIdMsg);
@@ -233,11 +233,12 @@
                 return this.getAjaxConfigFromServerPromise.then(() => {
 
                     //TODO MGA : behavior duplication with this.ajax, not DRY, to improve
-                    var requestConfig = this.configureHttpCall(HttpMethod.POST, url, config);
+                    let blueskyConfig = this.setupBlueskyConfig(config);
+                    let angularConfig = this.extractAngularConfigFromBlueskyConfig(HttpMethod.POST, url, blueskyConfig);
 
-                    if (requestConfig) // if no config returned, configuration failed, do not start ajax request
-                        return this.Upload.upload<T>(<ng.angularFileUpload.IFileUploadConfigFile>requestConfig) //TODO MGA : not safe hard cast
-                            .then<T>(this.onSuccess<T>(config), this.onError<T>(config), config.uploadProgress) //TODO MGA : uploadProgress callback ok ?
+                    if (angularConfig) // if no config returned, configuration failed, do not start ajax request
+                        return this.Upload.upload<T>(<ng.angularFileUpload.IFileUploadConfigFile>angularConfig) //TODO MGA : not safe hard cast
+                            .then<T>(this.onSuccess<T>(blueskyConfig), this.onError<T>(blueskyConfig), config.uploadProgress) //TODO MGA : uploadProgress callback ok ?
                             .finally(this.finally);
 
                     return null; //TODO MGA: what to return ?
@@ -258,28 +259,30 @@
         getFile(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<FileContent> {
             return this.getAjaxConfigFromServerPromise.then(() => {
 
-                var angularHttpConfig = this.configureHttpCall(HttpMethod.GET, url, config);
+                let blueskyConfig = this.setupBlueskyConfig(config);
+                let angularConfig = this.extractAngularConfigFromBlueskyConfig(HttpMethod.GET, url, blueskyConfig);
 
                 // if no config returned, configuration failed, do not start ajax request
-                if (!angularHttpConfig) {
+                if (!angularConfig) {
                     return this.$q.reject('Unable to configure request correctly. Aborting getFile ajax call.');
                 }
 
                 // specifically expect raw response type, otherwise byte stream responses are corrupted.
-                angularHttpConfig.responseType = 'arraybuffer';
+                angularConfig.responseType = 'arraybuffer';
 
                 //Expected ArrayBuffer response = byte array
-                return this.$http<ArrayBuffer>(angularHttpConfig)
+                return this.$http<ArrayBuffer>(angularConfig)
                     .then<FileContent>((httpResponse) => {
+                        // success
 
                         //benefit from successCallback validation before continuing
-                        var arrayBuffer = this.onSuccess<ArrayBuffer>(config)(httpResponse);
+                        let arrayBuffer = this.onSuccess<ArrayBuffer>(blueskyConfig)(httpResponse);
 
                         //TODO MGA: promise rejection vs. return null ?
                         if (!arrayBuffer) return null; //stop processing if unable to retrieve byte array
 
                         //read file info from response-headers
-                        var fileContent: FileContent = {
+                        let fileContent: FileContent = {
                             name: this.getFileNameFromHeaderContentDisposition(httpResponse.headers('content-disposition')) || null,
                             size: Number(httpResponse.headers('content-length')) || 0,
                             type: httpResponse.headers('content-type') || 'application/octet-stream',
@@ -288,7 +291,9 @@
 
                         return fileContent;
 
-                    }, this.onError)
+                    },
+                    // error
+                    this.onError(blueskyConfig))
                     .finally(this.finally);
             });
         }
@@ -392,33 +397,28 @@
             //TODO MGA : make sure getConfig resolve automatically without overhead once first call sucessfull.
             //TODO MGA : do not block if not call to internal API (initCall)
             return this.getAjaxConfigFromServerPromise.then(() => {
-                var angularHttpConfig = this.configureHttpCall(method, url, config);
 
-                if (angularHttpConfig) // if no config returned, configuration failed, do not start ajax request
-                    return this.$http<T>(angularHttpConfig)
-                        .then<T>(this.onSuccess<T>(config), this.onError<T>(config))
+                let blueskyConfig = this.setupBlueskyConfig(config);
+                let angularConfig = this.extractAngularConfigFromBlueskyConfig(method, url, blueskyConfig);
+
+                if (angularConfig) // if no config returned, configuration failed, do not start ajax request
+                    return this.$http<T>(angularConfig)
+                        .then<T>(this.onSuccess<T>(blueskyConfig), this.onError<T>(blueskyConfig))
                         //.catch TODO MGA handle catch clause if exception in success or error callback !
                         .finally(this.finally);
             });
         }
 
         /**
-        * Prepares a {@link ng#$http#config config} object for $http call.
-        * The operations include setting default values when not provided, and setting http headers if needed for :
-        *  - Ajax calls
-        *  - Authorization token
-        *  - Current UserRole.   
-        * @param options
-        * @returns {ng.$http.config} the configuration object ready to be injected into a $http call. 
-        */
-        private configureHttpCall = (method: HttpMethod, url: string, config?: BlueskyHttpRequestConfig): ng.IRequestConfig => {
-
-            // input validation
-
-            if (!url || method === null || method === undefined) {
-                this.$log.error('URL & METHOD parameters are necessary for httpWrapper calls. Aborting.');
-                return null;
-            }
+         * Prepares bluesky-specific configuration based on provided inputs.
+         * The operations include setting default values when not provided, and setting http headers if needed for :
+         *  - Ajax calls
+         *  - Authorization token
+         *  - Current UserRole.
+         * @param config user input config if provided.
+         * @returns the configuration object with automatic rules applied. 
+         */
+        private setupBlueskyConfig = (config?: BlueskyHttpRequestConfig): BlueskyHttpRequestConfig => {
 
             // set default config values and custom ones based on endpoints
 
@@ -430,14 +430,7 @@
             // TODO MGA: make sure EndpointTypeEnum[invalid value] doesn't return default valid enum value ??? otherwise, dangerous !
             var currentEndpointConfig = this.blueskyAjaxClientConfig && this.blueskyAjaxClientConfig.EndpointConfigurationDictionnary[EndpointTypeEnum[config.endpointType]];
 
-            //TODO MGA: hard cast is not safe, we may forget to set url & method parameters. TOFIX.
-            // automatically get all non-filtered parameters & keep them for this new object.
-            var configFull = <ng.IRequestConfig>config;
-
-            //TODO MGA: support mapping between upload & post here ?
-            configFull.method = HttpMethod[method];
-
-            configFull.headers = config.headers || {};
+            config.headers = config.headers || {};
 
             // configure default config flags based on target endpoint
             switch (config.endpointType) {
@@ -446,7 +439,7 @@
                 case EndpointTypeEnum.SelfcareApi:
                     // Reject explicitly wrong input configurations
                     if (config.disableXmlHttpRequestHeader) {
-                        this.$log.warn(`[BlueskyHttpWrapper][configureHttpCall] [${configFull.method} / ${url}] - API call intended with incompatible configuration options. Aborting ajax call.`, config);
+                        this.$log.warn(`[BlueskyHttpWrapper][setupBlueskyConfig] - API call intended with incompatible configuration options. Aborting ajax call.`, config);
                         return null;
                     }
 
@@ -478,7 +471,7 @@
                     config.disableXmlHttpRequestHeader = true; // do not add XmlHttpRequest if external Url by default: might create conflicts on certain servers that don't support this header outside of ASP world.
                     break;
                 default:
-                    this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Unsupported endpointType provided: '${EndpointTypeEnum[config.endpointType || EndpointTypeEnum.CurrentDomain]}'. Aborting.`);
+                    this.$log.error(`[BlueskyHttpWrapper][setupBlueskyConfig] - Unsupported endpointType provided: '${EndpointTypeEnum[config.endpointType || EndpointTypeEnum.CurrentDomain]}'. Aborting.`, config);
                     return null;
                 //break;
             }
@@ -490,7 +483,7 @@
             if (config.endpointType !== EndpointTypeEnum.CurrentDomain &&
                 config.endpointType !== EndpointTypeEnum.External &&
                 !currentEndpointConfig) {
-                this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Ajax call intended without expected endpoint configuration loaded from the server for endpointType '${EndpointTypeEnum[config.endpointType]}'. Aborting.`);
+                this.$log.error(`[BlueskyHttpWrapper][setupBlueskyConfig] - Ajax call intended without expected endpoint configuration loaded from the server for endpointType '${EndpointTypeEnum[config.endpointType]}'. Aborting.`, config);
                 return null;
             }
 
@@ -499,26 +492,18 @@
             config.useCurrentUserRole = config.useCurrentUserRole || false; // default value: don't transmit sensitive information to remote if not explicitly specified.
             config.disableToasterNotifications = config.disableToasterNotifications || false; //set default value for disableToasterNotifications to false as it's part of the normal behavior expected for this service.
 
-            // Try to build a valid url from input & endpointType.
-            configFull.url = this.buildUrlFromContext(url, config.endpointType);
-
-            if (!configFull.url) {
-                this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] - Unable to build url from urlInput '${url}' with endpointType '${EndpointTypeEnum[config.endpointType]}'. Aborting ajax call.`);
-                return null;
-            }
-
             if (!config.disableXmlHttpRequestHeader)
                 //TODO MGA: hard coded header to put in CONST
-                configFull.headers['X-Requested-With'] = 'XMLHttpRequest';
+                config.headers['X-Requested-With'] = 'XMLHttpRequest';
 
             if (config.useCurrentUserRole) {
                 // Reject call when missing mandatory information
                 if (!this.blueskyAjaxClientConfig.CurrentUserRole) {
-                    this.$log.error(`[BlueskyHttpWrapper][configureHttpCall][${configFull.method} / ${url}] - Ajax call intended without necessary userRole set in config. Aborting.`);
+                    this.$log.error(`[BlueskyHttpWrapper][setupBlueskyConfig] - Ajax call intended without necessary userRole set in config. Aborting.`, config);
                     return null;
                 }
                 //TODO MGA: hard coded header to put in CONST
-                configFull.headers['OA-UserRole'] = this.blueskyAjaxClientConfig.CurrentUserRole;
+                config.headers['OA-UserRole'] = this.blueskyAjaxClientConfig.CurrentUserRole;
             }
 
             // If auth token provided for target endpoint, add it in header
@@ -529,7 +514,7 @@
                 //TODO MGA: handle token validity endDate: renew auth before the call ! What's the best moment to do it ?
 
                 //TODO MGA: hard coded header to put in CONST
-                configFull.headers['Authorization'] = 'Bearer ' + currentEndpointConfig.AuthToken;
+                config.headers['Authorization'] = 'Bearer ' + currentEndpointConfig.AuthToken;
             }
 
             //TODO MGA: OE specific code, to remove, or at least put in as config param
@@ -537,7 +522,39 @@
                 // TODO MGA : type casting, is it okay or not ? better approach ?
                 (<any>this.$window).preventBlockUI = true;
 
-            return configFull;
+            return config;
+        }
+
+        private extractAngularConfigFromBlueskyConfig = (method: HttpMethod, url: string, blueskyConfig: BlueskyHttpRequestConfig): ng.IRequestConfig => {
+
+            // input validation
+
+            if (!url || method === null || method === undefined) {
+                this.$log.error('URL & METHOD parameters are necessary to configure httpWrapper calls. Aborting.');
+                return null;
+            }
+
+            if (!blueskyConfig) {
+                this.$log.error('bluesky config missing. Aborting.');
+                return null;
+            }
+
+            //TODO MGA: hard cast is not safe, we may forget to set url & method parameters. TOFIX.
+            // automatically get all non-filtered parameters & keep them for this new object.
+            let angularConfig = <ng.IRequestConfig>blueskyConfig;
+
+            //TODO MGA: support mapping between upload & post here ?
+            angularConfig.method = HttpMethod[method];
+
+            // Try to build a valid url from input & endpointType.
+            angularConfig.url = this.buildUrlFromContext(url, blueskyConfig.endpointType);
+
+            if (!angularConfig.url) {
+                this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] - Unable to build url from urlInput '${url}' with endpointType '${EndpointTypeEnum[blueskyConfig.endpointType]}'. Aborting ajax call.`);
+                return null;
+            }
+
+            return angularConfig;
         }
 
         /**
@@ -548,6 +565,10 @@
          *  - getCompleteResponseObject: flag indication if we must return the full response object along with headers and status or only the inner data. By default & if not specified, only returns inner data.
          */
         private onSuccess = <T>(originalConfig: BlueskyHttpRequestConfig): (httpPromise: ng.IHttpPromiseCallbackArg<T>) => T => {
+            if (!originalConfig) {
+                this.$log.warn('unable to retrieve originalConfig in onSuccess. Please provide complete config.');
+            }
+
             return <T>(httpPromise: ng.IHttpPromiseCallbackArg<T>): T => {
                 if (!httpPromise) {
                     this.$log.error(`[HTTP no-response] Unexpected $http error, no response promise returned.`);
@@ -586,6 +607,9 @@
          * @returns {} 
          */
         private onError = <T>(originalConfig: BlueskyHttpRequestConfig): (httpPromise: ng.IHttpPromiseCallbackArg<any>) => any => {
+            if (!originalConfig) {
+                this.$log.warn('unable to retrieve originalConfig in onSuccess. Please provide complete config.');
+            }
 
             return <T>(httpPromise: ng.IHttpPromiseCallbackArg<any>): any => {
                 // We suppose in case of no response that the srv didn't send any response.
@@ -603,7 +627,7 @@
                     //check contentType to try to display error message
                     if (contentType && (contentType.indexOf('application/json') > -1 || contentType.indexOf('text/plain') > -1)) {
 
-                        var message: string = ""; //default message
+                        let message: string = ""; //default message
 
                         //TODO MGA: handle error handling more generically based on input error message contract instead of expecting specific error strcture.
 

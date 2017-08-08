@@ -14,7 +14,7 @@
         disableToasterNotifications?: boolean;
 
         //TODO MGA: encapsulate in an UploadConfig object
-        file?: File,
+        file?: File;
         uploadInBase64Json?: boolean;
         uploadProgress?: () => any;
 
