@@ -19,7 +19,7 @@ var tsSrcArray = ['src/**/*.model.ts', 'src/**/*.ts'], //TODO MGA HACK: import m
 
 gulp.task('clean', function () {
     // delete the files
-    return del(['dist/**/*.*']);
+    return del.sync(['dist/**']);
 });
 
 //TODO MGA: fix ts-lint task
@@ -35,14 +35,14 @@ gulp.task('compile-ts', ['clean'], function () {
         .pipe(tsProject());
     return merge([
         tsResults.dts.pipe(concat('bluesky-http-wrapper.d.ts'))
-            .pipe(gulp.dest('dist/definitions')),
+            .pipe(gulp.dest('dist')),
 
         tsResults.js.pipe(concat('bluesky-http-wrapper.js'))
             .pipe(ngAnnotate())//TODO MGA : check if it breaks sourcemaps ?
             //.pipe(uglify()) //Uncomment to activate minification
             .pipe(sourcemaps.write())// Now the sourcemaps are added to the .js file //TODO MGA: sourcemaps keeps track of original .ts files + the concatenated .js file : how to only have the 2 original ts files ?
             //.pipe(rename({ suffix: '.min' }))
-            .pipe(gulp.dest('dist/js'))
+            .pipe(gulp.dest('dist'))
     ]);
 });
 
