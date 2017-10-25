@@ -12,39 +12,38 @@
         //#region private properties
 
         private getClientConfigInitializationUrl: string = 'BlueskyAjaxClientConfiguration/GetAjaxClientConfiguration'; // by default.
-        private selectedUserRole: UserRoleEntryDto = null; // by default not-set.
+        private selectedUserRole: UserRoleEntryDto | undefined; // by default not-set.
 
         //#endregion
 
         //#region public configuration methods
 
-        public setClientConfigURL(clientConfigUrlToUse: string): void {
+        public setClientConfigURL(clientConfigUrlToUse: string | undefined): void {
             this.getClientConfigInitializationUrl = clientConfigUrlToUse || this.getClientConfigInitializationUrl;
         }
 
-        public setUserRoleToUse(userRole: UserRoleEntryDto): void {
-            this.selectedUserRole = userRole || null;
+        public setUserRoleToUse(userRole: UserRoleEntryDto | undefined): void {
+            this.selectedUserRole = userRole || undefined;
         }
 
         //#endregion
 
         // Provider's factory function
         /* @ngInject */
-        public $get = (_: UnderscoreStatic,
+        public $get = (
             $http: ng.IHttpService,
             $window: ng.IWindowService,
             $log: ng.ILogService,
             $q: ng.IQService,
-            $location: ng.ILocationService,
             Upload: ng.angularFileUpload.IUploadService,
-            toaster: ngtoaster.IToasterService): IBlueskyHttpWrapper => {
+            toaster: toaster.IToasterService): IBlueskyHttpWrapper => {
 
-            return new BlueskyHttpWrapper(_, $http, $window, $log, $q, $location, Upload, toaster, this.getClientConfigInitializationUrl, this.selectedUserRole);
+            return new BlueskyHttpWrapper($http, $window, $log, $q, Upload, toaster, this.selectedUserRole, this.getClientConfigInitializationUrl);
         }
     }
 
     angular.module('bluesky.httpWrapper', ['toaster', 'ngAnimate', 'ngFileUpload'])
-        .constant<UnderscoreStatic>('_', window._)
+        .constant<_.UnderscoreStatic>('_', window._)
         .constant<moment.MomentStatic>('moment', window.moment)
         .provider('blueskyHttpWrapper', BlueskyHttpWrapperProvider);
 }

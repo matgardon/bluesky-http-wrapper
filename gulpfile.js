@@ -13,8 +13,9 @@ var gulp = require('gulp'),
 
 var tsProject = ts.createProject('tsconfig.json');
 
+
 var tsSrcArray = ['src/**/*.model.ts', 'src/**/*.ts'], //TODO MGA HACK: import models first so that they are generated before usage in concatenated file
-    tsExternalDefinitions = 'typings/**/*.d.ts';
+    tsExternalDefinitions = ['typings/**/*.d.ts', 'bower_components/bluesky-core-models/dist/bluesky-core-models.d.ts,'];
 
 gulp.task('clean', function () {
     // delete the files
@@ -28,19 +29,20 @@ gulp.task('ts-lint', function () {
 });
 
 gulp.task('compile-ts', ['clean'], function () {
+    // var tsResults = gulp.src(tsSrcArray)
     var tsResults = gulp.src(tsSrcArray.concat(tsExternalDefinitions))
-                        .pipe(sourcemaps.init())// This means sourcemaps will be generated
-                        .pipe(ts(tsProject));
+        .pipe(sourcemaps.init())// This means sourcemaps will be generated
+        .pipe(tsProject());
     return merge([
         tsResults.dts.pipe(concat('bluesky-http-wrapper.d.ts'))
-                     .pipe(gulp.dest('dist/definitions')),
+            .pipe(gulp.dest('dist/definitions')),
 
         tsResults.js.pipe(concat('bluesky-http-wrapper.js'))
-                    .pipe(ngAnnotate())//TODO MGA : check if it breaks sourcemaps ?
-                    //.pipe(uglify()) //Uncomment to activate minification
-                    .pipe(sourcemaps.write())// Now the sourcemaps are added to the .js file //TODO MGA: sourcemaps keeps track of original .ts files + the concatenated .js file : how to only have the 2 original ts files ?
-                    //.pipe(rename({ suffix: '.min' }))
-                    .pipe(gulp.dest('dist/js'))
+            .pipe(ngAnnotate())//TODO MGA : check if it breaks sourcemaps ?
+            //.pipe(uglify()) //Uncomment to activate minification
+            .pipe(sourcemaps.write())// Now the sourcemaps are added to the .js file //TODO MGA: sourcemaps keeps track of original .ts files + the concatenated .js file : how to only have the 2 original ts files ?
+            //.pipe(rename({ suffix: '.min' }))
+            .pipe(gulp.dest('dist/js'))
     ]);
 });
 

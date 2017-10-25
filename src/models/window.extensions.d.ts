@@ -4,8 +4,9 @@
  */
 //TODO MGA: .d.ts file so that it is not compiled and packaged with dist/ code (to not impact other apps).
 //TODO MGA: investigate installing global typings (window.XXX etc) from typîngs as a possible solution to this ?
+/// 
 interface Window {
     angular: ng.IAngularStatic;
-    _: UnderscoreStatic;
+    _: _.UnderscoreStatic;
     moment: moment.MomentStatic;
 }

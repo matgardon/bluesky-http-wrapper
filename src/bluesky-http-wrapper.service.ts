@@ -6,7 +6,7 @@
     import FileContent = bluesky.core.model.blueskyHttpClient.FileContent;
     import BlueskyAjaxClientConfigurationDto = bluesky.core.model.clientConfig.IBlueskyAjaxClientConfigurationDto;
     import EndpointTypeEnum = bluesky.core.model.clientConfig.EndpointTypeEnum;
-    import AjaxClientEndpointConfigurationDto = bluesky.core.model.clientConfig.IAjaxClientEndpointConfigurationDto;
+    // import AjaxClientEndpointConfigurationDto = bluesky.core.model.clientConfig.IAjaxClientEndpointConfigurationDto;
 
     export enum HttpMethod { GET, POST, PUT, PATCH, DELETE };
 
@@ -40,7 +40,7 @@
 
         getFile(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<FileContent>;
 
-        buildUrlFromContext(urlInput: string): string;
+        buildUrlFromContext(urlInput: string): string | undefined;
     }
 
     export class BlueskyHttpWrapper implements IBlueskyHttpWrapper {
@@ -57,20 +57,20 @@
 
         /* @ngInject */
         constructor(
-            private _: UnderscoreStatic,
             private $http: ng.IHttpService,
             private $window: ng.IWindowService,
             private $log: ng.ILogService,
             private $q: ng.IQService,
-            private $location: ng.ILocationService,
             private Upload: ng.angularFileUpload.IUploadService,
-            private toaster: ngtoaster.IToasterService,
-            private configInitializationURL: string,
-            private selectedUserRole: UserRoleEntryDto
+            private toaster: toaster.IToasterService,
+            private selectedUserRole: UserRoleEntryDto | undefined,
+
+            configInitializationURL: string
+
         ) {
             // 1 - fetch the configuration data necessary for this service to run from the provided endpoint
 
-            var configurationEndpointUrl = this.buildUrlFromContext(configInitializationURL, EndpointTypeEnum.CurrentDomain);
+            let configurationEndpointUrl = this.buildUrlFromContext(configInitializationURL, EndpointTypeEnum.CurrentDomain);
 
             if (!configurationEndpointUrl) {
                 this.$log.error(`[BlueskyHttpWrapper][Initialization] - Unable to build url from initialConfig url '${configInitializationURL}' with endpointType '${EndpointTypeEnum[EndpointTypeEnum.CurrentDomain]}'. Aborting blueskyHttpService init.`);
@@ -78,124 +78,157 @@
             }
 
             //TODO MGA: custom config for headers hard coded, to mutualize with const
-            this.getAjaxConfigFromServerPromise = this.$http.get<BlueskyAjaxClientConfigurationDto>(configurationEndpointUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then<BlueskyAjaxClientConfigurationDto>(
-                // success
-                (clientConfigPromise) => {
-                    //TODO MGA: reject status not in 2XX ?
-                    if (!clientConfigPromise.data) {
-                        var msg = `[BlueskyHttpWrapper][Initialization] - Unable to retrieve http config data from '${configInitializationURL}'. Aborting blueskyHttpWrapperService initialization.`;
-                        this.$log.error(msg);
-                        //TODO MGA: toaster ?
-                        return this.$q.reject(msg);
-                    }
-
-                    this.$log.info('[BlueskyHttpWrapper][Initialization] - Successfully loaded clientConfig from srv:', clientConfigPromise.data);
-
-                    this.blueskyAjaxClientConfig = clientConfigPromise.data;
-                    return clientConfigPromise.data;
-                },
-                // error
-                (error) => {
-                    this.$log.error('[BlueskyHttpWrapper][Initialization] - Unable to retrieve API config. Aborting blueskyHttpWrapperService initialization. Srv msg: ', error);
-                    //TODO MGA: show toaster ? based on provider config flag ?
-                    return this.$q.reject(error);
-                }).then<BlueskyAjaxClientConfigurationDto>(
-                // success
-                (blueskyClientConfig) => {
-                    //TODO MGA: handle case where client-side userRole was provided and not == srv-side user role !
-                    if (!blueskyClientConfig.CurrentUserRole) {
-                        //If not provided by domain from which code was loaded, then try to fetch default userRole from CAPI endpoint
-
-                        this.$log.info('[BlueskyHttpWrapper][Initialization] - No default UserRole provided by current domain, trying to fetch it from CAPI.');
-
-
-                        var coreApiConfig: AjaxClientEndpointConfigurationDto = blueskyClientConfig.EndpointConfigurationDictionnary[EndpointTypeEnum[EndpointTypeEnum.CoreApi]];
-
-                        if (!coreApiConfig) {
-                            var msg = '[BlueskyHttpWrapper][Initialization] - Failed to retrieve necessary CoreApi endpoint config to fetch userSSO. Aborting.';
+            //TODO MGA: log properly as other ajax calls
+            this.getAjaxConfigFromServerPromise =
+                this.$http
+                    .get<BlueskyAjaxClientConfigurationDto>(configurationEndpointUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(
+                    // success
+                    (clientConfigPromise) => {
+                        //TODO MGA: reject status not in 2XX ?
+                        if (!clientConfigPromise.data) {
+                            var msg = `[BlueskyHttpWrapper][Initialization] - Unable to retrieve http config data from '${configInitializationURL}'. Aborting               blueskyHttpWrapperService initialization.`;
                             this.$log.error(msg);
-                            return this.$q.reject(msg);
+                            //TODO MGA: toaster ?
+                            // return this.$q.reject(msg);
+                            throw new Error(msg);
                         }
 
-                        //TODO MGA: factorize with configureHttpCall() !! this is a special case where we cannot use ajax() DRY method ...
-                        var customConfig = {
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest',
-                                'Authorization': 'Bearer ' + coreApiConfig.AuthToken
+                        this.$log.info('[BlueskyHttpWrapper][Initialization] - Successfully loaded clientConfig from srv:', clientConfigPromise.data);
+
+                        this.blueskyAjaxClientConfig = clientConfigPromise.data;
+                        return clientConfigPromise.data;
+                    },
+                    // error
+                    (error: any) => {
+                        let msg = '[BlueskyHttpWrapper][Initialization] - Unable to retrieve API config. Aborting blueskyHttpWrapperService initialization.';
+                        this.$log.error(msg + 'Original msg: ', error);
+                        //TODO MGA: show toaster ? based on provider config flag ?
+                        return this.$q.reject(error);
+                    })
+                    .then(
+                    //success, get userSSO from capi if needed
+                    blueskyClientConfig => {
+
+                        if (blueskyClientConfig.CurrentUserRole &&
+                            selectedUserRole &&
+                            (selectedUserRole.Name + ' ' + selectedUserRole.Role + ' ' + selectedUserRole.Silo) !== blueskyClientConfig.CurrentUserRole) {
+                            throw new Error('[BlueskyHttpWrapper][Initialization] - client & srv-side selected user roles provided but they differ. internal error to fix.');
+                        }
+
+                        if (!blueskyClientConfig.CurrentUserRole) {
+                            //If not provided by domain from which code was loaded, then try to fetch default userRole from CAPI endpoint
+
+                            this.$log.info('[BlueskyHttpWrapper][Initialization] - No default UserRole provided by current domain, trying to fetch it from CAPI.');
+
+
+                            let coreApiConfig = blueskyClientConfig.EndpointConfigurationDictionnary[EndpointTypeEnum[EndpointTypeEnum.CoreApi]];
+
+                            if (!coreApiConfig) {
+                                let msg = '[BlueskyHttpWrapper][Initialization] - Failed to retrieve necessary CoreApi endpoint config to fetch userSSO. Aborting.';
+                                this.$log.error(msg);
+                                throw new Error(msg);
                             }
-                        };
 
-                        var getUserSsoFullUrl = this.buildUrlFromContext('user-sso?profile=', EndpointTypeEnum.CoreApi);
-
-                        return this.$http.get<UserSsoDto>(getUserSsoFullUrl, customConfig).then<BlueskyAjaxClientConfigurationDto>(
-                            (userSsoPromise) => {
-                                if (!userSsoPromise || !userSsoPromise.data || !userSsoPromise.data.UserRoleEntry) {
-                                    var coreApiConfigMissingMsg = '[BlueskyHttpWrapper][Initialization] - Unable to retrieve CoreAPI default userSSO. Aborting httpWrapperService initialization.';
-                                    this.$log.error(coreApiConfigMissingMsg);
-                                    return this.$q.reject(coreApiConfigMissingMsg);
+                            //TODO MGA: factorize with configureHttpCall() !! this is a special case where we cannot use ajax() DRY method ...
+                            let customConfig = {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'Authorization': 'Bearer ' + coreApiConfig.AuthToken
                                 }
+                            };
 
-                                if (!userSsoPromise.data.UserDisplayName || !userSsoPromise.data.UserIdentifier) {
-                                    let noUserIdMsg = '[BlueskyHttpWrapper][Initialization] - CoreAPI userSSO is not fully populated: unable to retrieve UserIdentifier or DisplayName. Aborting httpWrapperService initialization.';
-                                    this.$log.error(noUserIdMsg);
-                                    return this.$q.reject(noUserIdMsg);
+                            let getUserSsoFullUrl = this.buildUrlFromContext('user-sso?profile=', EndpointTypeEnum.CoreApi);
+
+                            if (!getUserSsoFullUrl) {
+                                let msg = '[BlueskyHttpWrapper][Initialization] - Failed to construct userSSO url for capi. Aborting.';
+                                this.$log.error(msg);
+                                throw new Error(msg);
+                            }
+
+                            //TODO MGA: log properly as other ajax calls
+                            return this.$http.get<UserSsoDto>(getUserSsoFullUrl, customConfig).then(
+                                //success
+                                userSsoPromise => {
+                                    if (!userSsoPromise || !userSsoPromise.data || !userSsoPromise.data.UserRoleEntry) {
+                                        let coreApiConfigMissingMsg = '[BlueskyHttpWrapper][Initialization] - Unable to retrieve CoreAPI default userSSO. Aborting httpWrapperService initialization.';
+                                        this.$log.error(coreApiConfigMissingMsg);
+                                        throw new Error(coreApiConfigMissingMsg);
+                                    }
+
+                                    if (!userSsoPromise.data.UserDisplayName || !userSsoPromise.data.UserIdentifier) {
+                                        let noUserIdMsg = '[BlueskyHttpWrapper][Initialization] - CoreAPI userSSO is not fully populated: unable to retrieve UserIdentifier or DisplayName. Aborting httpWrapperService initialization.';
+                                        this.$log.error(noUserIdMsg);
+                                        throw new Error(noUserIdMsg);
+                                    }
+
+                                    let userSso = userSsoPromise.data;
+
+                                    this.$log.info(`[BlueskyHttpWrapper][Initialization] - Default userSSO loaded from CAPI: '${userSso.UserDisplayName}'.`, userSso);
+
+                                    if (selectedUserRole)
+                                        this.$log.info(`[BlueskyHttpWrapper][Initialization] - Client app provided persisted UserRole. Assigning it.`, this.selectedUserRole);
+
+                                    //TODO MGA: make sure selectedUserRole is available in the list of userSSO roles, otherwise select default !
+                                    //TODO MGA: how to inform back the DA that selectedUserRole was reset ? invert responsability & store userRole in localStorage from this service ?
+                                    let userRoleToUse = selectedUserRole || userSso.UserRoleEntry;
+
+                                    //TODO MGA: this needs to be put in shared extension method / service
+                                    this.blueskyAjaxClientConfig.CurrentUserRole = userRoleToUse.Name + " " + userRoleToUse.Role + " " + userRoleToUse.Silo;
+
+                                    this.blueskyAjaxClientConfig.CurrentUser = userSso;
+
+                                    return blueskyClientConfig;
+                                },
+                                //error
+                                (error: any): ng.IPromise<never> => {
+
+                                    let msg = '[BlueskyHttpWrapper][Initialization] - Unable to retrieve user SSO from capi. Probably due to invalid certificates preventing us to communicate with CAPI. Aborting.';
+
+                                    this.$log.error(msg + ' Original msg:', error);
+                                    //TODO MGA: show toaster ? based on provider config flag ?
+                                    return this.$q.reject(msg);
                                 }
+                            );
+                        } else {
 
-                                var userSso = userSsoPromise.data;
+                            //TODO MGA: we only load userSSO if no userRole was provided srv-side, should we load it in all cases ?
 
-                                this.$log.info(`[BlueskyHttpWrapper][Initialization] - Default userSSO loaded from CAPI: '${userSso.UserDisplayName}'.`, userSso);
-
-                                if (selectedUserRole)
-                                    this.$log.info(`[BlueskyHttpWrapper][Initialization] - Client app provided saved UserRole. Assigning it.`, this.selectedUserRole);
-
-                                //TODO MGA: make sure selectedUserRole is available in the list of userSSO roles, otherwise select default !
-                                //TODO MGA: how to inform back the DA that selectedUserRole was reset ? invert responsability & store userRole in localStorage from this service ?
-                                var userRoleToUse = selectedUserRole || userSso.UserRoleEntry;
-
-                                //TODO MGA: this needs to be put in shared extension method / service
-                                this.blueskyAjaxClientConfig.CurrentUserRole = userRoleToUse.Name + " " + userRoleToUse.Role + " " + userRoleToUse.Silo;
-
-                                this.blueskyAjaxClientConfig.CurrentUser = userSso;
-
-                                return blueskyClientConfig;
-                            });
-                    } else {
-
-                        //TODO MGA: we only load userSSO if no userRole was provided srv-side, should we load it in all cases ?
-
-                        // already defined userRole sent from origin app, use it & set it as default.
-                        return blueskyClientConfig;
-                    }
-                });
+                            // already defined userRole sent from origin app, use it & set it as default.
+                            return blueskyClientConfig;
+                        }
+                    });
+            //error
+            // (error: any): ng.IPromise<never> => {
+            //     //TODO MGA: should not be needed, fail case it consumer promises
+            // });
         }
-
 
         //#endregion
 
         //#region public methods
 
-        get<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
+        public get<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
             return this.ajax<T>(HttpMethod.GET, url, config);
         }
 
-        delete<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
+        public delete<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
             return this.ajax<T>(HttpMethod.DELETE, url, config);
         }
 
-        post<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
+        public post<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
             config = config || {};
             config.data = data || config.data;;
             return this.ajax<T>(HttpMethod.POST, url, config);
         }
 
-        put<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
+        public put<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
             config = config || {};
             config.data = data || config.data;
             return this.ajax<T>(HttpMethod.PUT, url, config);
         }
 
-        patch<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
+        public patch<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
             config = config || {};
             config.data = data || config.data;
             return this.ajax<T>(HttpMethod.PATCH, url, config);
@@ -207,11 +240,12 @@
          * @param file
          * @param config
          */
-        upload<T>(url: string, file: File, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
+        public upload<T>(url: string, file: File, config?: BlueskyHttpRequestConfig): ng.IPromise<T> | ng.IPromise<never> {
 
             if (!file && (!config || !config.file)) {
-                this.$log.error('Cannot start upload with null {file} parameter.');
-                return null;
+                let msg = 'Cannot start upload with null {file} parameter.';
+                this.$log.error(msg);
+                return this.$q.reject(msg);
             }
 
             config = config || {};
@@ -222,7 +256,7 @@
                 //TODO MGA: make sure this delays next call and upload is not done before base64 encoding is finished, even if promise is already resolved ???
                 return this.Upload.base64DataUrl(file).then((fileBase64Url) => {
                     //TODO MGA: hard-coded key to fetch base64 encoding, to parametrize with server-side !
-                    config.data.fileBase64Url = fileBase64Url;
+                    if (config && config.data) config.data.fileBase64Url = fileBase64Url; //TODO MGA should not have to handle else
                     //normal post in case of base64-encoded data
                     return this.ajax<T>(HttpMethod.POST, url, config);
                 });
@@ -232,16 +266,20 @@
                 //TODO MGA : do not block if not call to internal API ? (initCall)
                 return this.getAjaxConfigFromServerPromise.then(() => {
 
-                    //TODO MGA : behavior duplication with this.ajax, not DRY, to improve
                     let blueskyConfig = this.setupBlueskyConfig(config);
                     let angularConfig = this.extractAngularConfigFromBlueskyConfig(HttpMethod.POST, url, blueskyConfig);
 
-                    if (angularConfig) // if no config returned, configuration failed, do not start ajax request
-                        return this.Upload.upload<T>(<ng.angularFileUpload.IFileUploadConfigFile>angularConfig) //TODO MGA : not safe hard cast
-                            .then<T>(this.onSuccess<T>(blueskyConfig), this.onError<T>(blueskyConfig), config.uploadProgress) //TODO MGA : uploadProgress callback ok ?
-                            .finally(this.finally);
+                    if (!angularConfig || !blueskyConfig) { // if no config returned, configuration failed, do not start ajax request
+                        return this.$q.reject('[blueskyHttpWrapper-AjaxCall] unable to configure correctly angular config object necessary for ajax call. aborting.');
+                    }
 
-                    return null; //TODO MGA: what to return ?
+                    return this.Upload.upload<T>(<ng.angularFileUpload.IFileUploadConfigFile>angularConfig)
+                        .then(
+                        this.onSuccess<T>(blueskyConfig),
+                        this.onError(blueskyConfig),
+                        (config && config.uploadProgress) ? config.uploadProgress : undefined)
+                        //.catch TODO MGA handle catch clause if exception in success or error callback !
+                        .finally(this.finally);
                 });
             }
         }
@@ -256,15 +294,14 @@
          * @param expectedType
          * @param config
          */
-        getFile(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<FileContent> {
+        getFile(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<FileContent> | ng.IPromise<never> {
             return this.getAjaxConfigFromServerPromise.then(() => {
 
                 let blueskyConfig = this.setupBlueskyConfig(config);
                 let angularConfig = this.extractAngularConfigFromBlueskyConfig(HttpMethod.GET, url, blueskyConfig);
 
-                // if no config returned, configuration failed, do not start ajax request
-                if (!angularConfig) {
-                    return this.$q.reject('Unable to configure request correctly. Aborting getFile ajax call.');
+                if (!angularConfig || !blueskyConfig) { // if no config returned, configuration failed, do not start ajax request
+                    return this.$q.reject('[blueskyHttpWrapper-AjaxCall] unable to configure correctly angular config object necessary for ajax call. aborting.');
                 }
 
                 // specifically expect raw response type, otherwise byte stream responses are corrupted.
@@ -272,18 +309,23 @@
 
                 //Expected ArrayBuffer response = byte array
                 return this.$http<ArrayBuffer>(angularConfig)
-                    .then<FileContent>((httpResponse) => {
+                    .then((httpResponse) => {
                         // success
 
                         //benefit from successCallback validation before continuing
+
+                        //TODO MGA understand why TS validation doesn't catch above if clause to validate blueskyConfig
+                        if (!blueskyConfig)
+                            return this.$q.reject('[blueskyHttpWrapper-AjaxCall] unable to configure correctly angular config object necessary for ajax call. aborting.');
+
                         let arrayBuffer = this.onSuccess<ArrayBuffer>(blueskyConfig)(httpResponse);
 
                         //TODO MGA: promise rejection vs. return null ?
-                        if (!arrayBuffer) return null; //stop processing if unable to retrieve byte array
+                        if (!arrayBuffer) throw new Error('[BlueskyHttpWrapper-getFile] - unable to retrieve byte array.'); //stop processing if unable to retrieve byte array
 
                         //read file info from response-headers
                         let fileContent: FileContent = {
-                            name: this.getFileNameFromHeaderContentDisposition(httpResponse.headers('content-disposition')) || null,
+                            name: this.getFileNameFromHeaderContentDisposition(httpResponse.headers('content-disposition')) || 'unknown',
                             size: Number(httpResponse.headers('content-length')) || 0,
                             type: httpResponse.headers('content-type') || 'application/octet-stream',
                             content: arrayBuffer
@@ -305,11 +347,11 @@
          * @param urlInput : TODO MGA: document different kind of urls that this method can take as input (full, partial etc)
          * @return null if not able to compute url. Otherwise, url of the request either partial or full based on endpointType.
          */
-        public buildUrlFromContext(urlInput: string, endpointType?: EndpointTypeEnum): string {
+        public buildUrlFromContext(urlInput: string, endpointType?: EndpointTypeEnum): string | undefined {
 
             if (!urlInput) {
                 this.$log.error('No URL input provided.');
-                return null;
+                return undefined;
             }
 
             // If Url starts with http:// or https:// => return as is, even if endpointType is not external.
@@ -327,7 +369,7 @@
             // Default value for endpointType if not provided is origin. TODO MGA: rule to discuss, here for retro-compatibility.
             endpointType = endpointType || EndpointTypeEnum.CurrentDomain;
 
-            var baseUrl: string;
+            let baseUrl: string;
 
             if (endpointType === EndpointTypeEnum.External) {
                 this.$log.warn('Partial url provided for a call with endpointType flagged as \'External\': the call will probably fail.');
@@ -340,9 +382,9 @@
                 //TODO MGA: not loading the endpointConfig for current domain means we can't access endpointAPIsuffix if it exists, should we load the endpointConfig for this case too ?? & handle it the same way as other endpoints ?
 
                 // Regex trying to determine if the input fragment contains a / between two character suites => controller given as input, otherwise, action on same controller expected
-                var controllerIsPresentRegex = /\w+\/\w+/;
+                let controllerIsPresentRegex = /\w+\/\w+/;
 
-                var actionIsOnSameController = !controllerIsPresentRegex.test(urlInput);
+                let actionIsOnSameController = !controllerIsPresentRegex.test(urlInput);
 
                 baseUrl = this.getUrlPath(actionIsOnSameController);
             } else {
@@ -351,7 +393,7 @@
                 if (!this.blueskyAjaxClientConfig ||
                     !this.blueskyAjaxClientConfig.EndpointConfigurationDictionnary) {
                     this.$log.error('Expected endpointConfigurationDictionnary provided but none found. Aborting.');
-                    return null;
+                    return undefined;
                 }
 
                 // TODO MGA HACKY: search by string representation of endpoint type in dict due to serialization limits
@@ -359,7 +401,7 @@
 
                 if (!endpointConfig) {
                     this.$log.error(`EndpointType '${EndpointTypeEnum[endpointType]}' is not 'External' or 'CurrentDomain', expected corresponding endpointConfiguration provided in blueskyAjaxClientConfig.endpointConfigurationDictionnary but none found. Aborting.`);
-                    return null;
+                    return undefined;
                 }
 
                 baseUrl = endpointConfig.EndpointBaseURL + (endpointConfig.EndpointSuffix || '');
@@ -368,8 +410,8 @@
             //TODO MGA: how to handle OM apps external calls without session provided ? will result in a redirect and call may fail ?
 
             // Boolean used to try to determine correct full url (add / or not before the url fragment depending on if found or not)
-            var urlFragmentStartsWithSlash = urlInput.slice(0, 1) === '/';
-            var baseUrlFragmentEndsWithSlash = baseUrl.slice(baseUrl.length - 1, baseUrl.length) === '/';
+            let urlFragmentStartsWithSlash = urlInput.slice(0, 1) === '/';
+            let baseUrlFragmentEndsWithSlash = baseUrl.slice(baseUrl.length - 1, baseUrl.length) === '/';
 
             //based on starting/trailing slashes, return full url.
             if (baseUrlFragmentEndsWithSlash && urlFragmentStartsWithSlash)
@@ -381,7 +423,7 @@
                 (!baseUrlFragmentEndsWithSlash && urlFragmentStartsWithSlash))
                 return baseUrl + urlInput;
 
-            return null;
+            return undefined;
         }
 
         //#endregion
@@ -393,7 +435,7 @@
          * Main caller that all wrapper calls (get, delete, post, put) must use to share common behavior.
          * @param config
          */
-        private ajax<T>(method: HttpMethod, url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T> {
+        private ajax<T>(method: HttpMethod, url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T> | ng.IPromise<never> {
             //TODO MGA : make sure getConfig resolve automatically without overhead once first call sucessfull.
             //TODO MGA : do not block if not call to internal API (initCall)
             return this.getAjaxConfigFromServerPromise.then(() => {
@@ -401,11 +443,14 @@
                 let blueskyConfig = this.setupBlueskyConfig(config);
                 let angularConfig = this.extractAngularConfigFromBlueskyConfig(method, url, blueskyConfig);
 
-                if (angularConfig) // if no config returned, configuration failed, do not start ajax request
-                    return this.$http<T>(angularConfig)
-                        .then<T>(this.onSuccess<T>(blueskyConfig), this.onError<T>(blueskyConfig))
-                        //.catch TODO MGA handle catch clause if exception in success or error callback !
-                        .finally(this.finally);
+                if (!angularConfig || !blueskyConfig) { // if no config returned, configuration failed, do not start ajax request
+                    return this.$q.reject('[blueskyHttpWrapper-AjaxCall] unable to configure correctly angular config object necessary for ajax call. aborting.');
+                }
+
+                return this.$http<T>(angularConfig)
+                    .then(this.onSuccess<T>(blueskyConfig), this.onError(blueskyConfig))
+                    //.catch TODO MGA handle catch clause if exception in success or error callback !
+                    .finally(this.finally);
             });
         }
 
@@ -418,7 +463,7 @@
          * @param config user input config if provided.
          * @returns the configuration object with automatic rules applied. 
          */
-        private setupBlueskyConfig = (config?: BlueskyHttpRequestConfig): BlueskyHttpRequestConfig => {
+        private setupBlueskyConfig = (config?: BlueskyHttpRequestConfig): BlueskyHttpRequestConfig | undefined => {
 
             // set default config values and custom ones based on endpoints
 
@@ -440,7 +485,7 @@
                     // Reject explicitly wrong input configurations
                     if (config.disableXmlHttpRequestHeader) {
                         this.$log.warn(`[BlueskyHttpWrapper][setupBlueskyConfig] - API call intended with incompatible configuration options. Aborting ajax call.`, config);
-                        return null;
+                        return undefined;
                     }
 
                     // config values for API endpoints are different from default, so we must specify them.
@@ -472,7 +517,7 @@
                     break;
                 default:
                     this.$log.error(`[BlueskyHttpWrapper][setupBlueskyConfig] - Unsupported endpointType provided: '${EndpointTypeEnum[config.endpointType || EndpointTypeEnum.CurrentDomain]}'. Aborting.`, config);
-                    return null;
+                    return undefined;
                 //break;
             }
 
@@ -484,7 +529,7 @@
                 config.endpointType !== EndpointTypeEnum.External &&
                 !currentEndpointConfig) {
                 this.$log.error(`[BlueskyHttpWrapper][setupBlueskyConfig] - Ajax call intended without expected endpoint configuration loaded from the server for endpointType '${EndpointTypeEnum[config.endpointType]}'. Aborting.`, config);
-                return null;
+                return undefined;
             }
 
             //TODO MGA: set default values after endpoint-specific configurations
@@ -500,15 +545,15 @@
                 // Reject call when missing mandatory information
                 if (!this.blueskyAjaxClientConfig.CurrentUserRole) {
                     this.$log.error(`[BlueskyHttpWrapper][setupBlueskyConfig] - Ajax call intended without necessary userRole set in config. Aborting.`, config);
-                    return null;
+                    return undefined;
                 }
                 //TODO MGA: hard coded header to put in CONST
                 config.headers['OA-UserRole'] = this.blueskyAjaxClientConfig.CurrentUserRole;
             }
 
             // If auth token provided for target endpoint, add it in header
-            if (currentEndpointConfig && currentEndpointConfig.AuthToken) { // protect against cases where endpointType is current domain or external: endpointConfig null/undefined.
-
+            // protect against cases where endpointType is current domain or external: endpointConfig null/undefined.
+            if (currentEndpointConfig && currentEndpointConfig.AuthToken) {
                 //TODO MGA: reject authToken for endpoints that are not 'safe' to share auth token with, such as External ones ? Or authorize this so that server can load an auth token for certain external endpoints ?
 
                 //TODO MGA: handle token validity endDate: renew auth before the call ! What's the best moment to do it ?
@@ -525,18 +570,18 @@
             return config;
         }
 
-        private extractAngularConfigFromBlueskyConfig = (method: HttpMethod, url: string, blueskyConfig: BlueskyHttpRequestConfig): ng.IRequestConfig => {
+        private extractAngularConfigFromBlueskyConfig = (method: HttpMethod, url: string, blueskyConfig: BlueskyHttpRequestConfig | undefined): ng.IRequestConfig | undefined => {
 
             // input validation
 
             if (!url || method === null || method === undefined) {
                 this.$log.error('URL & METHOD parameters are necessary to configure httpWrapper calls. Aborting.');
-                return null;
+                return undefined;
             }
 
             if (!blueskyConfig) {
                 this.$log.error('bluesky config missing. Aborting.');
-                return null;
+                return undefined;
             }
 
             //TODO MGA: hard cast is not safe, we may forget to set url & method parameters. TOFIX.
@@ -547,11 +592,16 @@
             angularConfig.method = HttpMethod[method];
 
             // Try to build a valid url from input & endpointType.
-            angularConfig.url = this.buildUrlFromContext(url, blueskyConfig.endpointType);
+            let finalUrlToFetch = this.buildUrlFromContext(url, blueskyConfig.endpointType);
+            if (!finalUrlToFetch) {
+                this.$log.error('[BlueskyHttpWrapper - ajax call builder] - unable to construct valid url to call. aborting.');
+                return undefined;
+            }
+            angularConfig.url = finalUrlToFetch;
 
             if (!angularConfig.url) {
-                this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] - Unable to build url from urlInput '${url}' with endpointType '${EndpointTypeEnum[blueskyConfig.endpointType]}'. Aborting ajax call.`);
-                return null;
+                this.$log.error(`[BlueskyHttpWrapper][configureHttpCall] - Unable to build url from urlInput '${url}' with endpointType '${blueskyConfig.endpointType ? EndpointTypeEnum[blueskyConfig.endpointType] : "unknown endpoint"}'. Aborting ajax call.`);
+                return undefined;
             }
 
             return angularConfig;
@@ -571,12 +621,13 @@
 
             return <T>(httpPromise: ng.IHttpPromiseCallbackArg<T>): T => {
                 if (!httpPromise) {
-                    this.$log.error(`[HTTP no-response] Unexpected $http error, no response promise returned.`);
+                    let msg = `[HTTP no-response] Unexpected $http error, no response promise returned.`;
+                    this.$log.error(msg);
 
                     if (!originalConfig.disableToasterNotifications)
                         this.toaster.error('unexpected behavior', 'Please contact your local support team.');
 
-                    return null;
+                    throw new Error(msg);
                     //TODO MGA: handle multi-type return in case of rejection or do something else ? this method is currently used synchronously without promise waiting.
                     //return this.$q.reject(httpPromise); // Reject promise
                 }
@@ -606,12 +657,12 @@
          * @param httpPromise 
          * @returns {} 
          */
-        private onError = <T>(originalConfig: BlueskyHttpRequestConfig): (httpPromise: ng.IHttpPromiseCallbackArg<any>) => any => {
+        private onError = (originalConfig: BlueskyHttpRequestConfig): (httpPromise: ng.IHttpPromiseCallbackArg<any>) => any => {
             if (!originalConfig) {
                 this.$log.warn('unable to retrieve originalConfig in onSuccess. Please provide complete config.');
             }
 
-            return <T>(httpPromise: ng.IHttpPromiseCallbackArg<any>): any => {
+            return (httpPromise: ng.IHttpPromiseCallbackArg<any>): any => {
                 // We suppose in case of no response that the srv didn't send any response.
                 // TODO MGA: may also be a fault in internal $http / ajax client side lib, to distinguish.
                 if (!httpPromise || !httpPromise.data) {
@@ -678,15 +729,15 @@
         //TODO MGA: unrobust, needs solid refacto to make it more generic when on origin domain !
         private getUrlPath(actionIsOnSameController: boolean): string {
 
-            var baseUrlOmAppsRegex = /(\/\w+\/\(S\(\w+\)\))\/\w+/;
-            var baseUrlAspAppsRegex = /(\/\w+)\/\w+/;
+            let baseUrlOmAppsRegex = /(\/\w+\/\(S\(\w+\)\))\/\w+/;
+            let baseUrlAspAppsRegex = /(\/\w+)\/\w+/;
 
-            var url = this.$window.location.pathname;
-            var baseUrlOmAppsMatches = baseUrlOmAppsRegex.exec(url);
-            var baseUrlAspAppsMatches = baseUrlAspAppsRegex.exec(url);
+            let url = this.$window.location.pathname;
+            let baseUrlOmAppsMatches = baseUrlOmAppsRegex.exec(url);
+            let baseUrlAspAppsMatches = baseUrlAspAppsRegex.exec(url);
 
-            var baseUrlWithControllerName: string = null;
-            var baseUrl: string = null;
+            let baseUrlWithControllerName: string | undefined = undefined;
+            let baseUrl: string | undefined = undefined;
 
             // 2 matches = regex matches + the capturing group
             if (baseUrlOmAppsMatches && baseUrlOmAppsMatches.length && baseUrlOmAppsMatches.length === 2) {
@@ -708,44 +759,44 @@
         }
 
         //TODO MGA: OM-specific ASP MVC code, not used ATM, to remove
-        private getCurrentSessionID(): string {
+        // private getCurrentSessionID(): string {
 
-            //TODO MGA : magic regexp to fetch SessionID in URL, to store elsewhere !
-            var sessionRegex = /https:\/\/[\w.]+\/[\w.]+\/(\(S\(\w+\)\))\/.*/;
-            //var sessionRegex = /https:\/\/[\w.]+\/OrderEntry\/(\(S\(\w+\)\))\/.*/;
+        //     //TODO MGA : magic regexp to fetch SessionID in URL, to store elsewhere !
+        //     var sessionRegex = /https:\/\/[\w.]+\/[\w.]+\/(\(S\(\w+\)\))\/.*/;
+        //     //var sessionRegex = /https:\/\/[\w.]+\/OrderEntry\/(\(S\(\w+\)\))\/.*/;
 
-            // TODO MGA : update regexp to the one below
-            //var baseUrlRegex = /(https:\/\/[\w.-]+\/[\w.-]+\/\(S\(\w+\)\)\/)\w+/;
+        //     // TODO MGA : update regexp to the one below
+        //     //var baseUrlRegex = /(https:\/\/[\w.-]+\/[\w.-]+\/\(S\(\w+\)\)\/)\w+/;
 
 
-            var path = this.$location.absUrl();
+        //     var path = this.$location.absUrl();
 
-            var regexpArray = sessionRegex.exec(path);
+        //     var regexpArray = sessionRegex.exec(path);
 
-            if (!regexpArray) {
-                this.$log.error('Unable to recognized searched pattern in current url location to retrieve sessionID.');
-                return '';
-            }
-            if (regexpArray.length === 1) {
-                this.$log.error('Unable to find sessionID in searched pattern in current url.');
-                return '';
-            }
-            if (regexpArray.length > 2) {
-                this.$log.error('Too many matches found for the sessionID search in the current url.');
-                return '';
-            }
+        //     if (!regexpArray) {
+        //         this.$log.error('Unable to recognized searched pattern in current url location to retrieve sessionID.');
+        //         return '';
+        //     }
+        //     if (regexpArray.length === 1) {
+        //         this.$log.error('Unable to find sessionID in searched pattern in current url.');
+        //         return '';
+        //     }
+        //     if (regexpArray.length > 2) {
+        //         this.$log.error('Too many matches found for the sessionID search in the current url.');
+        //         return '';
+        //     }
 
-            return regexpArray[1];
-        }
+        //     return regexpArray[1];
+        // }
 
         /**
          * Trim the content-disposition header to return only the filename.
          * @param contentDispositionHeader
          */
-        private getFileNameFromHeaderContentDisposition(contentDispositionHeader: string): string {
-            if (!contentDispositionHeader) return null;
+        private getFileNameFromHeaderContentDisposition(contentDispositionHeader: string): string | undefined {
+            if (!contentDispositionHeader) return undefined;
 
-            var result = contentDispositionHeader.split(';')[1].trim().split('=')[1];
+            let result = contentDispositionHeader.split(';')[1].trim().split('=')[1];
 
             return result.replace(/"/g, '');
         }

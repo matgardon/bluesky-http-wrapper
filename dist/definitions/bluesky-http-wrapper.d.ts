@@ -23,6 +23,10 @@ declare namespace bluesky.core.model.blueskyHttpClient {
     }
 }
 
+/// <reference types="angular" />
+/// <reference types="angular-mocks" />
+/// <reference types="ng-file-upload" />
+/// <reference types="ngtoaster" />
 declare namespace bluesky.core.service {
     import UserRoleEntryDto = bluesky.core.model.userManagement.IUserRoleEntryDto;
     /**
@@ -34,12 +38,16 @@ declare namespace bluesky.core.service {
     class BlueskyHttpWrapperProvider implements ng.IServiceProvider {
         private getClientConfigInitializationUrl;
         private selectedUserRole;
-        setClientConfigURL(clientConfigUrlToUse: string): void;
-        setUserRoleToUse(userRole: UserRoleEntryDto): void;
-        $get: (_: UnderscoreStatic, $http: ng.IHttpService, $window: ng.IWindowService, $log: ng.ILogService, $q: ng.IQService, $location: ng.ILocationService, Upload: ng.angularFileUpload.IUploadService, toaster: ngtoaster.IToasterService) => IBlueskyHttpWrapper;
+        setClientConfigURL(clientConfigUrlToUse: string | undefined): void;
+        setUserRoleToUse(userRole: UserRoleEntryDto | undefined): void;
+        $get: ($http: angular.IHttpService, $window: angular.IWindowService, $log: angular.ILogService, $q: angular.IQService, Upload: angular.angularFileUpload.IUploadService, toaster: toaster.IToasterService) => IBlueskyHttpWrapper;
     }
 }
 
+/// <reference types="angular" />
+/// <reference types="angular-mocks" />
+/// <reference types="ng-file-upload" />
+/// <reference types="ngtoaster" />
 declare namespace bluesky.core.service {
     import UserRoleEntryDto = bluesky.core.model.userManagement.IUserRoleEntryDto;
     import BlueskyHttpRequestConfig = bluesky.core.model.blueskyHttpClient.IBlueskyHttpRequestConfig;
@@ -73,22 +81,19 @@ declare namespace bluesky.core.service {
         patch<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         upload<T>(url: string, file: File, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         getFile(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<FileContent>;
-        buildUrlFromContext(urlInput: string): string;
+        buildUrlFromContext(urlInput: string): string | undefined;
     }
     class BlueskyHttpWrapper implements IBlueskyHttpWrapper {
-        private _;
         private $http;
         private $window;
         private $log;
         private $q;
-        private $location;
         private Upload;
         private toaster;
-        private configInitializationURL;
         private selectedUserRole;
         getAjaxConfigFromServerPromise: ng.IPromise<BlueskyAjaxClientConfigurationDto>;
         blueskyAjaxClientConfig: BlueskyAjaxClientConfigurationDto;
-        constructor(_: UnderscoreStatic, $http: ng.IHttpService, $window: ng.IWindowService, $log: ng.ILogService, $q: ng.IQService, $location: ng.ILocationService, Upload: ng.angularFileUpload.IUploadService, toaster: ngtoaster.IToasterService, configInitializationURL: string, selectedUserRole: UserRoleEntryDto);
+        constructor($http: ng.IHttpService, $window: ng.IWindowService, $log: ng.ILogService, $q: ng.IQService, Upload: ng.angularFileUpload.IUploadService, toaster: toaster.IToasterService, selectedUserRole: UserRoleEntryDto | undefined, configInitializationURL: string);
         get<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         delete<T>(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
         post<T>(url: string, data: any, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
@@ -100,7 +105,7 @@ declare namespace bluesky.core.service {
          * @param file
          * @param config
          */
-        upload<T>(url: string, file: File, config?: BlueskyHttpRequestConfig): ng.IPromise<T>;
+        upload<T>(url: string, file: File, config?: BlueskyHttpRequestConfig): ng.IPromise<T> | ng.IPromise<never>;
         /**
          * This method is used to download a file in the form of a byte-stream from an endpoint and wrap it into a FileContent object with name, type & size properties read from the HTTP response headers of the serveur.
          * It is the responsability of the consumer to do something with the wrapped byteArray (for example download the file, or show it inside the webPage etc).
@@ -111,7 +116,7 @@ declare namespace bluesky.core.service {
          * @param expectedType
          * @param config
          */
-        getFile(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<FileContent>;
+        getFile(url: string, config?: BlueskyHttpRequestConfig): ng.IPromise<FileContent> | ng.IPromise<never>;
         /**
          * Tries to parse the input url :
          * If it seems to be a full URL, then return as is (considers it external Url)
@@ -119,7 +124,7 @@ declare namespace bluesky.core.service {
          * @param urlInput : TODO MGA: document different kind of urls that this method can take as input (full, partial etc)
          * @return null if not able to compute url. Otherwise, url of the request either partial or full based on endpointType.
          */
-        buildUrlFromContext(urlInput: string, endpointType?: EndpointTypeEnum): string;
+        buildUrlFromContext(urlInput: string, endpointType?: EndpointTypeEnum): string | undefined;
         /**
          * Utility method.
          * Main caller that all wrapper calls (get, delete, post, put) must use to share common behavior.
@@ -159,7 +164,6 @@ declare namespace bluesky.core.service {
          */
         private finally;
         private getUrlPath(actionIsOnSameController);
-        private getCurrentSessionID();
         /**
          * Trim the content-disposition header to return only the filename.
          * @param contentDispositionHeader

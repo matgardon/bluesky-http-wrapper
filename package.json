@@ -6,19 +6,28 @@
     "node": "*"
   },
   "private": true,
-  "dependencies": { },
+  "dependencies": {},
   "devDependencies": {
-    "gulp": "3.x.x",
-    "gulp-typescript": "2.x.x",
-    "gulp-sourcemaps": "1.x.x",
-    "merge2": "1.x.x",
+    "@types/angular": "1.6.x",
+    "@types/angular-mocks": "^1.5.11",
+    "@types/jquery": "3.x.x",
+    "@types/moment": "2.x.x",
+    "@types/ng-file-upload": "12.x.x",
+    "@types/ngtoaster": "0.x.x",
+    "@types/underscore": "1.x.x",
+    "angular-mocks": "1.x.x",
     "del": "2.x.x",
-    "gulp-tslint": "1.x.x",
-    "tslint": "3.x.x",
+    "gulp": "3.x.x",
     "gulp-concat": "2.x.x",
-    "gulp-uglify": "1.x.x",
+    "gulp-ng-annotate": "2.x.x",
     "gulp-rename": "1.x.x",
-    "gulp-ng-annotate": "2.x.x"
+    "gulp-sourcemaps": "2.x.x",
+    "gulp-tslint": "8.x.x",
+    "gulp-typescript": "3.x.x",
+    "gulp-uglify": "2.x.x",
+    "merge2": "1.x.x",
+    "tslint": "5.x.x",
+    "typescript": "2.5.x"
   },
   "_comment": "this package description file corresponds to a node package, and is only used to list the node package dependencies of this project. This enables a simple npm install to fetch the dependencies needed from npm"
 }
