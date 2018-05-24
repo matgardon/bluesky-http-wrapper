@@ -15,7 +15,7 @@ var tsProject = ts.createProject('tsconfig.json');
 
 
 var tsSrcArray = ['src/**/*.model.ts', 'src/**/*.ts'], //TODO MGA HACK: import models first so that they are generated before usage in concatenated file
-    tsExternalDefinitions = ['typings/**/*.d.ts', 'bower_components/bluesky-core-models/dist/bluesky-core-models.d.ts,'];
+    tsExternalDefArray = ['typings/**/*.d.ts', 'bower_components/bluesky-core-models/dist/bluesky-core-models.d.ts'];
 
 gulp.task('clean', function () {
     // delete the files
@@ -30,7 +30,7 @@ gulp.task('ts-lint', function () {
 
 gulp.task('compile-ts', ['clean'], function () {
     // var tsResults = gulp.src(tsSrcArray)
-    var tsResults = gulp.src(tsSrcArray.concat(tsExternalDefinitions))
+    var tsResults = gulp.src(tsSrcArray.concat(tsExternalDefArray))
         .pipe(sourcemaps.init())// This means sourcemaps will be generated
         .pipe(tsProject());
     return merge([

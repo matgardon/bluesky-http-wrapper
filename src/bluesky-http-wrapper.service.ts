@@ -672,7 +672,7 @@
 
                 if (!originalConfig.disableToasterNotifications) {
 
-                    var contentType = httpPromise.headers('Content-Type');
+                    let contentType = httpPromise.headers('Content-Type');
 
 
                     //check contentType to try to display error message
@@ -710,7 +710,7 @@
                 // We don't recover from error, so we propagate it : below handlers have the choice of reading the error with an error handler or not. See $q promises behavior here : https://github.com/kriskowal/q
                 // This behavior is desired so that we show error inside specific server communication modals at specific places in the app, otherwise show a global alert message, or even do not show anything if not necessary (do not ad an error handler in below handlers of this promise).
                 return this.$q.reject(httpPromise);
-            }
+            };
         }
 
         /**
