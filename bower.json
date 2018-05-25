@@ -1,7 +1,7 @@
 {
   "name": "bluesky-http-wrapper",  
   "description": "Simple angular http wrapper used in bluesky client apps.",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "authors": [
     "Mathis Gardon"
   ],
@@ -26,9 +26,12 @@
     "angular-animate": "1.6.x",
     "angularjs-toaster": "2.x.x",
     "ng-file-upload": "11.x.x",
-    "bluesky-core-models": "3.x.x"
+    "bluesky-core-models": "3.5.1"
   },
   "devDependencies": {
     "angular-mocks": "1.6.x"
+  },
+  "resolutions": {
+    "angular": "1.6.x"
   }
 }
