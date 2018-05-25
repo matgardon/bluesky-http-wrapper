@@ -1,17 +1,17 @@
 {
   "name": "bluesky-http-wrapper",  
   "description": "Simple angular http wrapper used in bluesky client apps.",
-  "version": "4.2.1",
+  "version": "4.2.2",
   "authors": [
     "Mathis Gardon"
   ],
   "license": "MIT",
   "main": [
-    "dist/js/bluesky-http-wrapper.js"
+    "dist/bluesky-http-wrapper.js"
   ],
   "typescript": {
     "definition": [
-      "dist/definitions/bluesky-http-wrapper.d.ts"
+      "dist/bluesky-http-wrapper.d.ts"
     ]
   },
   "ignore": [
