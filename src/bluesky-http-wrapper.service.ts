@@ -484,6 +484,7 @@
                 case EndpointTypeEnum.SelfcareApi:
                 case EndpointTypeEnum.MetraNetApi:
                 case EndpointTypeEnum.ResourceApi:
+                case EndpointTypeEnum.MonitoringApi:
                     // Reject explicitly wrong input configurations
                     if (config.disableXmlHttpRequestHeader) {
                         this.$log.warn(`[BlueskyHttpWrapper][setupBlueskyConfig] - API call intended with incompatible configuration options. Aborting ajax call.`, config);
