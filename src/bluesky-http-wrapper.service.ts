@@ -83,121 +83,121 @@
                 this.$http
                     .get<BlueskyAjaxClientConfigurationDto>(configurationEndpointUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(
-                    // success
-                    (clientConfigPromise) => {
-                        //TODO MGA: reject status not in 2XX ?
-                        if (!clientConfigPromise.data) {
-                            var msg = `[BlueskyHttpWrapper][Initialization] - Unable to retrieve http config data from '${configInitializationURL}'. Aborting               blueskyHttpWrapperService initialization.`;
-                            this.$log.error(msg);
-                            //TODO MGA: toaster ?
-                            // return this.$q.reject(msg);
-                            throw new Error(msg);
-                        }
+                        // success
+                        (clientConfigPromise) => {
+                            //TODO MGA: reject status not in 2XX ?
+                            if (!clientConfigPromise.data) {
+                                var msg = `[BlueskyHttpWrapper][Initialization] - Unable to retrieve http config data from '${configInitializationURL}'. Aborting               blueskyHttpWrapperService initialization.`;
+                                this.$log.error(msg);
+                                //TODO MGA: toaster ?
+                                // return this.$q.reject(msg);
+                                throw new Error(msg);
+                            }
 
-                        this.$log.info('[BlueskyHttpWrapper][Initialization] - Successfully loaded clientConfig from srv:', clientConfigPromise.data);
+                            this.$log.info('[BlueskyHttpWrapper][Initialization] - Successfully loaded clientConfig from srv:', clientConfigPromise.data);
 
-                        this.blueskyAjaxClientConfig = clientConfigPromise.data;
-                        return clientConfigPromise.data;
-                    },
-                    // error
-                    (error: any) => {
-                        let msg = '[BlueskyHttpWrapper][Initialization] - Unable to retrieve API config. Aborting blueskyHttpWrapperService initialization.';
-                        this.$log.error(msg + 'Original msg: ', error);
-                        //TODO MGA: show toaster ? based on provider config flag ?
-                        return this.$q.reject(error);
-                    })
+                            this.blueskyAjaxClientConfig = clientConfigPromise.data;
+                            return clientConfigPromise.data;
+                        },
+                        // error
+                        (error: any) => {
+                            let msg = '[BlueskyHttpWrapper][Initialization] - Unable to retrieve API config. Aborting blueskyHttpWrapperService initialization.';
+                            this.$log.error(msg + 'Original msg: ', error);
+                            //TODO MGA: show toaster ? based on provider config flag ?
+                            return this.$q.reject(error);
+                        })
                     .then(
-                    //success, get userSSO from capi if needed
-                    blueskyClientConfig => {
+                        //success, get userSSO from capi if needed
+                        blueskyClientConfig => {
 
-                        if (blueskyClientConfig.CurrentUserRole &&
-                            selectedUserRole &&
-                            (selectedUserRole.Name + ' ' + selectedUserRole.Role + ' ' + selectedUserRole.Silo) !== blueskyClientConfig.CurrentUserRole) {
-                            throw new Error('[BlueskyHttpWrapper][Initialization] - client & srv-side selected user roles provided but they differ. internal error to fix.');
-                        }
-
-                        if (!blueskyClientConfig.CurrentUserRole) {
-                            //If not provided by domain from which code was loaded, then try to fetch default userRole from CAPI endpoint
-
-                            this.$log.info('[BlueskyHttpWrapper][Initialization] - No default UserRole provided by current domain, trying to fetch it from CAPI.');
-
-
-                            let coreApiConfig = blueskyClientConfig.EndpointConfigurationDictionnary[EndpointTypeEnum[EndpointTypeEnum.CoreApi]];
-
-                            if (!coreApiConfig) {
-                                let msg = '[BlueskyHttpWrapper][Initialization] - Failed to retrieve necessary CoreApi endpoint config to fetch userSSO. Aborting.';
-                                this.$log.error(msg);
-                                throw new Error(msg);
+                            if (blueskyClientConfig.CurrentUserRole &&
+                                selectedUserRole &&
+                                (selectedUserRole.Name + ' ' + selectedUserRole.Role + ' ' + selectedUserRole.Silo) !== blueskyClientConfig.CurrentUserRole) {
+                                throw new Error('[BlueskyHttpWrapper][Initialization] - client & srv-side selected user roles provided but they differ. internal error to fix.');
                             }
 
-                            //TODO MGA: factorize with configureHttpCall() !! this is a special case where we cannot use ajax() DRY method ...
-                            let customConfig = {
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest',
-                                    'Authorization': 'Bearer ' + coreApiConfig.AuthToken
+                            if (!blueskyClientConfig.CurrentUserRole) {
+                                //If not provided by domain from which code was loaded, then try to fetch default userRole from CAPI endpoint
+
+                                this.$log.info('[BlueskyHttpWrapper][Initialization] - No default UserRole provided by current domain, trying to fetch it from CAPI.');
+
+
+                                let coreApiConfig = blueskyClientConfig.EndpointConfigurationDictionnary[EndpointTypeEnum[EndpointTypeEnum.CoreApi]];
+
+                                if (!coreApiConfig) {
+                                    let msg = '[BlueskyHttpWrapper][Initialization] - Failed to retrieve necessary CoreApi endpoint config to fetch userSSO. Aborting.';
+                                    this.$log.error(msg);
+                                    throw new Error(msg);
                                 }
-                            };
 
-                            let getUserSsoFullUrl = this.buildUrlFromContext('user-sso?profile=', EndpointTypeEnum.CoreApi);
+                                //TODO MGA: factorize with configureHttpCall() !! this is a special case where we cannot use ajax() DRY method ...
+                                let customConfig = {
+                                    headers: {
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                        'Authorization': 'Bearer ' + coreApiConfig.AuthToken
+                                    }
+                                };
 
-                            if (!getUserSsoFullUrl) {
-                                let msg = '[BlueskyHttpWrapper][Initialization] - Failed to construct userSSO url for capi. Aborting.';
-                                this.$log.error(msg);
-                                throw new Error(msg);
+                                let getUserSsoFullUrl = this.buildUrlFromContext('user-sso?profile=', EndpointTypeEnum.CoreApi);
+
+                                if (!getUserSsoFullUrl) {
+                                    let msg = '[BlueskyHttpWrapper][Initialization] - Failed to construct userSSO url for capi. Aborting.';
+                                    this.$log.error(msg);
+                                    throw new Error(msg);
+                                }
+
+                                //TODO MGA: log properly as other ajax calls
+                                return this.$http.get<UserSsoDto>(getUserSsoFullUrl, customConfig).then(
+                                    //success
+                                    userSsoPromise => {
+                                        if (!userSsoPromise || !userSsoPromise.data || !userSsoPromise.data.UserRoleEntry) {
+                                            let coreApiConfigMissingMsg = '[BlueskyHttpWrapper][Initialization] - Unable to retrieve CoreAPI default userSSO. Aborting httpWrapperService initialization.';
+                                            this.$log.error(coreApiConfigMissingMsg);
+                                            throw new Error(coreApiConfigMissingMsg);
+                                        }
+
+                                        if (!userSsoPromise.data.UserDisplayName || !userSsoPromise.data.UserIdentifier) {
+                                            let noUserIdMsg = '[BlueskyHttpWrapper][Initialization] - CoreAPI userSSO is not fully populated: unable to retrieve UserIdentifier or DisplayName. Aborting httpWrapperService initialization.';
+                                            this.$log.error(noUserIdMsg);
+                                            throw new Error(noUserIdMsg);
+                                        }
+
+                                        let userSso = userSsoPromise.data;
+
+                                        this.$log.info(`[BlueskyHttpWrapper][Initialization] - Default userSSO loaded from CAPI: '${userSso.UserDisplayName}'.`, userSso);
+
+                                        if (selectedUserRole)
+                                            this.$log.info(`[BlueskyHttpWrapper][Initialization] - Client app provided persisted UserRole. Assigning it.`, this.selectedUserRole);
+
+                                        //TODO MGA: make sure selectedUserRole is available in the list of userSSO roles, otherwise select default !
+                                        //TODO MGA: how to inform back the DA that selectedUserRole was reset ? invert responsability & store userRole in localStorage from this service ?
+                                        let userRoleToUse = selectedUserRole || userSso.UserRoleEntry;
+
+                                        //TODO MGA: this needs to be put in shared extension method / service
+                                        this.blueskyAjaxClientConfig.CurrentUserRole = userRoleToUse.Name + " " + userRoleToUse.Role + " " + userRoleToUse.Silo;
+
+                                        this.blueskyAjaxClientConfig.CurrentUser = userSso;
+
+                                        return blueskyClientConfig;
+                                    },
+                                    //error
+                                    (error: any): ng.IPromise<never> => {
+
+                                        let msg = '[BlueskyHttpWrapper][Initialization] - Unable to retrieve user SSO from capi. Probably due to invalid certificates preventing us to communicate with CAPI. Aborting.';
+
+                                        this.$log.error(msg + ' Original msg:', error);
+                                        //TODO MGA: show toaster ? based on provider config flag ?
+                                        return this.$q.reject(msg);
+                                    }
+                                );
+                            } else {
+
+                                //TODO MGA: we only load userSSO if no userRole was provided srv-side, should we load it in all cases ?
+
+                                // already defined userRole sent from origin app, use it & set it as default.
+                                return blueskyClientConfig;
                             }
-
-                            //TODO MGA: log properly as other ajax calls
-                            return this.$http.get<UserSsoDto>(getUserSsoFullUrl, customConfig).then(
-                                //success
-                                userSsoPromise => {
-                                    if (!userSsoPromise || !userSsoPromise.data || !userSsoPromise.data.UserRoleEntry) {
-                                        let coreApiConfigMissingMsg = '[BlueskyHttpWrapper][Initialization] - Unable to retrieve CoreAPI default userSSO. Aborting httpWrapperService initialization.';
-                                        this.$log.error(coreApiConfigMissingMsg);
-                                        throw new Error(coreApiConfigMissingMsg);
-                                    }
-
-                                    if (!userSsoPromise.data.UserDisplayName || !userSsoPromise.data.UserIdentifier) {
-                                        let noUserIdMsg = '[BlueskyHttpWrapper][Initialization] - CoreAPI userSSO is not fully populated: unable to retrieve UserIdentifier or DisplayName. Aborting httpWrapperService initialization.';
-                                        this.$log.error(noUserIdMsg);
-                                        throw new Error(noUserIdMsg);
-                                    }
-
-                                    let userSso = userSsoPromise.data;
-
-                                    this.$log.info(`[BlueskyHttpWrapper][Initialization] - Default userSSO loaded from CAPI: '${userSso.UserDisplayName}'.`, userSso);
-
-                                    if (selectedUserRole)
-                                        this.$log.info(`[BlueskyHttpWrapper][Initialization] - Client app provided persisted UserRole. Assigning it.`, this.selectedUserRole);
-
-                                    //TODO MGA: make sure selectedUserRole is available in the list of userSSO roles, otherwise select default !
-                                    //TODO MGA: how to inform back the DA that selectedUserRole was reset ? invert responsability & store userRole in localStorage from this service ?
-                                    let userRoleToUse = selectedUserRole || userSso.UserRoleEntry;
-
-                                    //TODO MGA: this needs to be put in shared extension method / service
-                                    this.blueskyAjaxClientConfig.CurrentUserRole = userRoleToUse.Name + " " + userRoleToUse.Role + " " + userRoleToUse.Silo;
-
-                                    this.blueskyAjaxClientConfig.CurrentUser = userSso;
-
-                                    return blueskyClientConfig;
-                                },
-                                //error
-                                (error: any): ng.IPromise<never> => {
-
-                                    let msg = '[BlueskyHttpWrapper][Initialization] - Unable to retrieve user SSO from capi. Probably due to invalid certificates preventing us to communicate with CAPI. Aborting.';
-
-                                    this.$log.error(msg + ' Original msg:', error);
-                                    //TODO MGA: show toaster ? based on provider config flag ?
-                                    return this.$q.reject(msg);
-                                }
-                            );
-                        } else {
-
-                            //TODO MGA: we only load userSSO if no userRole was provided srv-side, should we load it in all cases ?
-
-                            // already defined userRole sent from origin app, use it & set it as default.
-                            return blueskyClientConfig;
-                        }
-                    });
+                        });
             //error
             // (error: any): ng.IPromise<never> => {
             //     //TODO MGA: should not be needed, fail case it consumer promises
@@ -275,9 +275,9 @@
 
                     return this.Upload.upload<T>(<ng.angularFileUpload.IFileUploadConfigFile>angularConfig)
                         .then(
-                        this.onSuccess<T>(blueskyConfig),
-                        this.onError(blueskyConfig),
-                        (config && config.uploadProgress) ? config.uploadProgress : undefined)
+                            this.onSuccess<T>(blueskyConfig),
+                            this.onError(blueskyConfig),
+                            (config && config.uploadProgress) ? config.uploadProgress : undefined)
                         //.catch TODO MGA handle catch clause if exception in success or error callback !
                         .finally(this.finally);
                 });
@@ -334,8 +334,8 @@
                         return fileContent;
 
                     },
-                    // error
-                    this.onError(blueskyConfig))
+                        // error
+                        this.onError(blueskyConfig))
                     .finally(this.finally);
             });
         }
@@ -681,26 +681,36 @@
                     //check contentType to try to display error message
                     if (contentType && (contentType.indexOf('application/json') > -1 || contentType.indexOf('text/plain') > -1)) {
 
-                        let message: string = ""; //default message
+                        let message: string = ''; //default message
 
                         //TODO MGA: handle error handling more generically based on input error message contract instead of expecting specific error strcture.
 
                         //if (response.data.ModelState) {
                         //    //TODO MGA : handle this when well formatted server-side
                         //} else
-                        if (httpPromise.data.Message && angular.isString(httpPromise.data.Message)) {
-                            message = httpPromise.data.Message;
-                        } else if (angular.isString(httpPromise.data)) {
+                        if (angular.isString(httpPromise.data)) {
                             message = httpPromise.data;
+                        } else if (httpPromise.data.Message && angular.isString(httpPromise.data.Message)) {
+                            message = httpPromise.data.Message;
                         }
 
-                        //TODO MGA: handle more response codes gracefully.
-                        if (httpPromise.status === 404) {
-                            this.toaster.warning('not found', message);
-                        } else {
+                        if (httpPromise.status >= 400 && httpPromise.status < 500) {
+                            if (httpPromise.data &&
+                                httpPromise.data.ModelState &&
+                                httpPromise.data.ModelState.Validation &&
+                                httpPromise.data.ModelState.Validation.length > 0) {
+
+                                let messageContent = httpPromise.data.ModelState.Validation.join(', ');
+                                this.toaster.warning(message || 'bad request', messageContent);
+
+                            } else if (httpPromise.status === 404) {
+                                this.toaster.warning('not found', message);
+                            } else {
+                                this.toaster.warning('bad request', message);
+                            }
+                        } else { // 500+ status code
                             this.toaster.error('server response error', `${message}. (status: ${httpPromise.status})`);
                         }
-
 
                     } else {
                         this.toaster.error('internal server error', 'status: ' + httpPromise.status);

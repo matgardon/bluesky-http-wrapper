@@ -1,7 +1,7 @@
 {
   "name": "bluesky-http-wrapper",  
   "description": "Simple angular http wrapper used in bluesky client apps.",
-  "version": "4.2.2",
+  "version": "4.2.3",
   "authors": [
     "Mathis Gardon"
   ],
